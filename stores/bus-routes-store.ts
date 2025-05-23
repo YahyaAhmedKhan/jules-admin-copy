@@ -36,6 +36,8 @@ interface BusRoutesStore {
     getBusRoutes: () => any[]; // Auto-fetch if empty
     getRouteColor: (index: number) => string; // Get color for a specific route
     toggleRouteVisibility: (index: number) => void; // Toggle visibility for a specific route
+    busRouteGroupVisibility: { [busTypeId: number]: boolean };
+    toggleGroupVisibility: (busTypeId: number) => void;
 
 
 }
@@ -43,6 +45,7 @@ interface BusRoutesStore {
 const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
     busRoutes: [],
     busRoutesVisibility: {},
+    busRouteGroupVisibility: {}, // Added busRouteGroupVisibility to initial state
     loading: true,
     error: null,
     busRoutesByID: {},
@@ -86,6 +89,17 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
             set({
                 busRoutesByID: groupedById,
             });
+
+            // Initialize busRouteGroupVisibility
+            const groupVisibilityInit: { [busTypeId: number]: boolean } = {};
+            if (data.routes && Array.isArray(data.routes)) {
+                data.routes.forEach((route: BusRouteEdgeModel) => {
+                    if (route && typeof route.bus_type_id !== 'undefined') {
+                        groupVisibilityInit[route.bus_type_id] = true; // Default to true (expanded)
+                    }
+                });
+            }
+            set({ busRouteGroupVisibility: groupVisibilityInit });
 
             const tempStopsById: { [key: number]: Set<string> } = {};
 
@@ -147,7 +161,28 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
         const visibility = get().busRoutesVisibility;
         visibility[index] = !visibility[index];
         set({ busRoutesVisibility: visibility });
-    }
+    },
+
+    // Added toggleGroupVisibility function
+    toggleGroupVisibility: (busTypeId: number) => {
+        const { busRoutes, busRouteGroupVisibility, busRoutesVisibility } = get();
+        
+        const newGroupVisibility = { ...busRouteGroupVisibility };
+        newGroupVisibility[busTypeId] = !newGroupVisibility[busTypeId];
+        const currentGroupState = newGroupVisibility[busTypeId];
+
+        const newRoutesVisibility = { ...busRoutesVisibility };
+        busRoutes.forEach(route => {
+            if (route.bus_type_id === busTypeId) {
+                newRoutesVisibility[route.route_id] = currentGroupState;
+            }
+        });
+
+        set({ 
+            busRouteGroupVisibility: newGroupVisibility, 
+            busRoutesVisibility: newRoutesVisibility 
+        });
+    },
 }));
 
 export default useBusRouteStore;

@@ -2,6 +2,7 @@
 
 import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash } from "lucide-react"
 import { motion } from "framer-motion";
+import * as React from "react"; // Ensured React is imported for useMemo
 
 import {
     Sidebar,
@@ -28,6 +29,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collap
 import useAddRouteStore from "@/stores/add-route-store"
 import { useBusStore } from "@/stores/bus-store"
 import { AdminMenuKey } from "@/enums/admin-menu-key";
+import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; // Added BusRouteEdgeModel import
 
 
 interface MenuItem {
@@ -79,26 +81,53 @@ const menuSubitems: { [key: string]: () => JSX.Element } = {
 
 
 function HomeItems() {
-
     const busRouteStore = useBusRouteStore();
-    const { busRoutes, busRoutesVisibility, toggleRouteVisibility, busRoutesByID } = busRouteStore
+    const {
+        busRoutes, // Use busRoutes for grouping
+        busRoutesVisibility,
+        toggleRouteVisibility,
+        busRouteGroupVisibility, // Added from store
+        toggleGroupVisibility,  // Added from store
+    } = busRouteStore;
 
     const busStore = useBusStore();
-    const { buses, busVisibility, toggleBusVisibility } = busStore
+    const { buses, busVisibility, toggleBusVisibility } = busStore;
+
+    // Group bus routes by bus_type_id
+    const groupedBusRoutes = React.useMemo(() => {
+        const groups: Map<number, { description: string, routes: BusRouteEdgeModel[] }> = new Map();
+        if (busRoutes && Array.isArray(busRoutes)) {
+            busRoutes.forEach(route => {
+                if (route && typeof route.bus_type_id !== 'undefined' && route.bus_type_description) {
+                    if (!groups.has(route.bus_type_id)) {
+                        groups.set(route.bus_type_id, {
+                            description: route.bus_type_description,
+                            routes: [],
+                        });
+                    }
+                    groups.get(route.bus_type_id)!.routes.push(route);
+                }
+            });
+        }
+        return groups;
+    }, [busRoutes]);
+
+    // Check if bus routes data is still loading or empty
+     const isLoadingOrEmptyRoutes = busRoutes.length === 0;
+
 
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden">
-            <Collapsible className="group/collapsible">
+            {/* Bus Routes Section - Now with Grouping */}
+            <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton >
-                            <Route></Route>
+                        <SidebarMenuButton>
+                            <Route />
                             <span>Bus Routes</span>
                             <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
-
-
                     <CollapsibleContent asChild>
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
@@ -108,38 +137,77 @@ function HomeItems() {
                             className="overflow-hidden"
                         >
                             <SidebarMenuSub>
-                                {Object.entries(busRoutesByID).length > 0 ? (
-                                    Object.entries(busRoutesByID).map(([id, routes]) => (
-
-                                        <SidebarMenuSubButton className="cursor-pointer " key={`bus route-${id}`} onClick={() => toggleRouteVisibility(Number(id))}>
-                                            <Checkbox checked={busRoutesVisibility[Number(id)]} ></Checkbox>
-                                            <span>{`Route ${id}`}</span>
-                                        </SidebarMenuSubButton>
+                                {isLoadingOrEmptyRoutes ? (
+                                    Array.from({ length: 3 }).map((_, index) => (
+                                        <SidebarMenuSkeleton key={`loading-group-${index}`}>Loading Groups...</SidebarMenuSkeleton>
                                     ))
                                 ) : (
-                                    Array.from({ length: 3 }).map((_, index) => (
-                                        <SidebarMenuSkeleton key={index}>Loading</SidebarMenuSkeleton>
+                                    Array.from(groupedBusRoutes.entries()).map(([busTypeId, groupData]) => (
+                                        <Collapsible key={`group-${busTypeId}`} className="group/collapsible-inner" open={busRouteGroupVisibility[busTypeId]} onOpenChange={() => toggleGroupVisibility(busTypeId)}>
+                                            <SidebarMenuItem>
+                                                <CollapsibleTrigger asChild>
+                                                    <SidebarMenuButton variant="outline" className="font-semibold"> {/* Added variant and font-semibold for distinction */}
+                                                        <span>{groupData.description}</span>
+                                                        <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible-inner:-rotate-90" />
+                                                    </SidebarMenuButton>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent asChild>
+                                                    <motion.div
+                                                        initial={{ height: 0, opacity: 0 }}
+                                                        animate={{ height: "auto", opacity: 1 }}
+                                                        exit={{ height: 0, opacity: 0 }}
+                                                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <SidebarMenuSub>
+                                                            {groupData.routes.length > 0 ? (
+                                                                groupData.routes.map(route => (
+                                                                    <SidebarMenuSubButton
+                                                                        className="cursor-pointer"
+                                                                        key={`bus-route-${route.route_id}`}
+                                                                        onClick={() => {
+                                                                            if (busRouteGroupVisibility[busTypeId]) { // Only allow toggle if group is visible
+                                                                                toggleRouteVisibility(route.route_id);
+                                                                            }
+                                                                        }}
+                                                                        disabled={!busRouteGroupVisibility[busTypeId]} // Disable button if group is collapsed
+                                                                    >
+                                                                        <Checkbox
+                                                                            checked={busRoutesVisibility[route.route_id] === true && busRouteGroupVisibility[busTypeId] === true}
+                                                                            disabled={!busRouteGroupVisibility[busTypeId]} // Disable checkbox if group is collapsed
+                                                                        />
+                                                                        <span>{`Route ${route.route_id}`}</span>
+                                                                    </SidebarMenuSubButton>
+                                                                ))
+                                                            ) : (
+                                                                <SidebarMenuSubItem>
+                                                                    <span className="p-2 text-xs text-gray-500">No routes in this group.</span>
+                                                                </SidebarMenuSubItem>
+                                                            )}
+                                                        </SidebarMenuSub>
+                                                    </motion.div>
+                                                </CollapsibleContent>
+                                            </SidebarMenuItem>
+                                        </Collapsible>
                                     ))
                                 )}
                             </SidebarMenuSub>
                         </motion.div>
                     </CollapsibleContent>
-
-
                 </SidebarMenuItem>
             </Collapsible>
 
-            {/* Buses */}
-            <Collapsible className="group/collapsible">
+            {/* Buses Section (remains unchanged) */}
+            <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton >
-                            <Bus></Bus>
+                        <SidebarMenuButton>
+                            <Bus />
                             <span>Bus Locations</span>
                             <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
-                    <CollapsibleContent>
+                    <CollapsibleContent asChild>
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -148,27 +216,31 @@ function HomeItems() {
                             className="overflow-hidden"
                         >
                             <SidebarMenuSub>
-                                {buses.length > 0 ?
-                                    buses.map((bus, i) => {
-                                        return <SidebarMenuSubButton className="cursor-pointer " key={`bus route-${i}`} onClick={() => toggleBusVisibility(i)}>
-                                            <Checkbox checked={busVisibility![i]}  ></Checkbox>
+                                {buses.length > 0 ? (
+                                    buses.map((bus, i) => (
+                                        <SidebarMenuSubButton
+                                            className="cursor-pointer"
+                                            key={`bus-location-${i}`} // Changed key to avoid conflict
+                                            onClick={() => toggleBusVisibility(i)}
+                                        >
+                                            <Checkbox checked={busVisibility![i]} />
                                             <span>{bus.id}</span>
                                         </SidebarMenuSubButton>
-                                    }) :
+                                    ))
+                                ) : (
                                     Array.from({ length: 3 }).map((_, index) => (
-                                        <SidebarMenuSkeleton key={index}>
-                                            Loading
+                                        <SidebarMenuSkeleton key={`loading-bus-${index}`}>
+                                            Loading Buses...
                                         </SidebarMenuSkeleton>
                                     ))
-                                }
+                                )}
                             </SidebarMenuSub>
                         </motion.div>
                     </CollapsibleContent>
                 </SidebarMenuItem>
             </Collapsible>
-        </SidebarMenuSub >
-
-    )
+        </SidebarMenuSub>
+    );
 }
 
 function AddRouteItems() {
