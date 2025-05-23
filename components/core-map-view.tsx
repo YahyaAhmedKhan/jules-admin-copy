@@ -145,7 +145,7 @@ export default function CoreMapView() {
             newWaypoints?.length > 0 && activeMenu.addRoute &&
             newWaypoints.map((waypoint, index) => {
                 return (
-                    newWaypointMarker(waypoint)
+                    newWaypointMarker(waypoint, index + 1) // Pass index + 1 as orderNumber
                 );
             })
         }

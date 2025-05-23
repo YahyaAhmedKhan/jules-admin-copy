@@ -2,7 +2,7 @@ import { Marker } from "react-map-gl/mapbox";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "./ui/hover-card";
 import { Bus } from "@/types/bus";
 import { Bus as BusLucide, BusFront, MapPinPlusIcon } from "lucide-react";
-import Waypoint from "@/types/waypoint";
+import Waypoint from "@/types/waypoint"; // Ensure Waypoint is imported
 import { BusStop } from "@/types/bus-stop";
 import useBusRouteStore from "@/stores/bus-routes-store";
 
@@ -46,7 +46,7 @@ export const busStopMarker = (busStop: BusStop, color?: string) => {
 
     return (
         <Marker
-            key={`bus-stop-${busStop.location.latitude}`}
+            key={`bus-stop-${busStop.location.latitude}-${busStop.location.longitude}-${busStop.routeId}-${busStop.index}`} // Enhanced key
             longitude={busStop.location.longitude}
             latitude={busStop.location.latitude}
             color={markerColor}
@@ -79,16 +79,18 @@ export const busStopMarker = (busStop: BusStop, color?: string) => {
     );
 }
 
-export const newWaypointMarker = (waypoint: Waypoint) => {
+export const newWaypointMarker = (waypoint: Waypoint, orderNumber: number) => { // Added orderNumber prop
     return (
         <Marker
-            key={`waypoint-${Math.random()}`}
+            key={`waypoint-${waypoint.id || waypoint.location[0]}-${waypoint.location[1]}`} // Use waypoint.id for a more stable key if available
             longitude={waypoint.location[0]}
             latitude={waypoint.location[1]}
         >
             <div className="relative bg-green-500 rounded-lg p-1">
                 <MapPinPlusIcon className="text-white" />
-                <div className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">1</div>
+                <div className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+                    {orderNumber} {/* Display dynamic order number */}
+                </div>
             </div>
         </Marker>
     );

@@ -1,6 +1,6 @@
 "use client"
 
-import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash } from "lucide-react"
+import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" // Added Trash2
 import { motion } from "framer-motion";
 import * as React from "react"; // Ensure React is imported
 
@@ -17,7 +17,7 @@ import {
     SidebarMenuSkeleton,
     SidebarMenuSub,
     SidebarMenuSubButton,
-    SidebarMenuSubItem, // Added this import
+    SidebarMenuSubItem, 
     useSidebar,
 } from "@/components/ui/sidebar"
 import { JSX } from "react/jsx-runtime"
@@ -25,17 +25,17 @@ import useBusRouteStore from "@/stores/bus-routes-store"
 import useSidebarStore from "@/stores/sidebar-store"
 
 import { Checkbox } from "@/components/ui/checkbox"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible" // Corrected path
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible" 
 import useAddRouteStore from "@/stores/add-route-store"
-import { useBusStore } from "@/stores/bus-store" // Corrected to useBusStore from "@/stores/bus-store"
+import { useBusStore } from "@/stores/bus-store" 
 import { AdminMenuKey } from "@/enums/admin-menu-key";
-import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; // Ensure this is imported
-import Waypoint from '@/types/waypoint'; // Added Waypoint import
+import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; 
+import Waypoint from '@/types/waypoint'; 
 
 // Imports for AddRouteItems
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button"; // Added Button import
+import { Button } from "@/components/ui/button"; 
 import {
     AlertDialog,
     AlertDialogAction,
@@ -99,17 +99,15 @@ const menuSubitems: { [key: string]: () => JSX.Element } = {
 function HomeItems() {
     const busRouteStore = useBusRouteStore();
     const {
-        busRoutesByID, // Using busRoutesByID for unique routes
+        busRoutesByID, 
         busRoutesVisibility,
         toggleRouteVisibility,
         busRouteGroupVisibility,
         toggleGroupVisibility,
-        loading: routesLoading, // Get loading state
+        loading: routesLoading, 
     } = busRouteStore;
 
     const busStore = useBusStore();
-    // Assuming busStore has a loading state, if not, busesLoading would be undefined.
-    // If busStore.loading doesn't exist, you might need to adjust or ensure it's added to the store.
     const { buses, busVisibility, toggleBusVisibility, loading: busesLoading } = busStore; 
 
     const groupedRoutesByBusType = React.useMemo(() => {
@@ -119,7 +117,7 @@ function HomeItems() {
                 const routeId = parseInt(routeIdStr, 10);
                 const routeEdges = busRoutesByID[routeId];
                 if (routeEdges && routeEdges.length > 0) {
-                    const firstEdge = routeEdges[0]; // Use the first edge for type info
+                    const firstEdge = routeEdges[0]; 
                     const { bus_type_id, bus_type_description } = firstEdge;
 
                     if (!groups.has(bus_type_id)) {
@@ -139,7 +137,6 @@ function HomeItems() {
 
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden">
-            {/* Bus Routes Section - Grouped */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -158,7 +155,7 @@ function HomeItems() {
                             className="overflow-hidden"
                         >
                             <SidebarMenuSub>
-                                {isLoadingOrEmptyRoutes && !routesLoading ? ( // Show skeleton only if loading, or empty message if not loading but empty
+                                {isLoadingOrEmptyRoutes && !routesLoading ? ( 
                                     <SidebarMenuSubItem>
                                       <span className="p-2 text-xs text-gray-500">No bus routes available.</span>
                                     </SidebarMenuSubItem>
@@ -171,7 +168,7 @@ function HomeItems() {
                                         <Collapsible 
                                             key={`group-${busTypeId}`} 
                                             className="group/collapsible-inner" 
-                                            open={busRouteGroupVisibility[busTypeId] !== undefined ? busRouteGroupVisibility[busTypeId] : true} // Default to true if undefined
+                                            open={busRouteGroupVisibility[busTypeId] !== undefined ? busRouteGroupVisibility[busTypeId] : true} 
                                             onOpenChange={() => toggleGroupVisibility(busTypeId)}
                                         >
                                             <SidebarMenuItem>
@@ -194,13 +191,12 @@ function HomeItems() {
                                                                 Array.from(groupData.route_ids).map(routeId => (
                                                                     <SidebarMenuSubButton
                                                                         className="cursor-pointer"
-                                                                        key={`bus-route-${routeId}`} // Key is now unique
+                                                                        key={`bus-route-${routeId}`} 
                                                                         onClick={() => {
                                                                             if (busRouteGroupVisibility[busTypeId] !== false) {
                                                                                 toggleRouteVisibility(routeId);
                                                                             }
                                                                         }}
-                                                                        // disabled property is implicitly handled by clickability check if needed, or can be explicit
                                                                     >
                                                                         <Checkbox
                                                                             checked={busRoutesVisibility[routeId] === true && busRouteGroupVisibility[busTypeId] !== false}
@@ -228,7 +224,6 @@ function HomeItems() {
                 </SidebarMenuItem>
             </Collapsible>
 
-            {/* Buses Section (remains unchanged from previous version) */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -257,8 +252,8 @@ function HomeItems() {
                                     buses.map((bus, i) => (
                                         <SidebarMenuSubButton
                                             className="cursor-pointer"
-                                            key={`bus-location-${bus.id || i}`} // Use bus.id if available for a more stable key
-                                            onClick={() => toggleBusVisibility(i)} // Assuming toggleBusVisibility uses index
+                                            key={`bus-location-${bus.id || i}`} 
+                                            onClick={() => toggleBusVisibility(i)} 
                                         >
                                             <Checkbox checked={busVisibility![i]} aria-label={`Toggle visibility for Bus ${bus.id || i}`} />
                                             <span>{bus.id || `Bus ${i + 1}`}</span>
@@ -283,14 +278,14 @@ function AddRouteItems() {
     const addRouteStore = useAddRouteStore();
     const { 
         newRouteBusStops, 
-        clearNewRouteBusStops, 
-        clearWaypointRoute, 
-        clearIntermediateRoutes, 
-        clearVertices,
-        updateBusStopName // Added from store
+        clearNewRouteBusStops: storeClearNewRouteBusStops, // Renamed to avoid conflict
+        clearWaypointRoute: storeClearWaypointRoute,
+        clearIntermediateRoutes: storeClearIntermediateRoutes,
+        clearVertices: storeClearVertices,
+        updateBusStopName,
+        deleteBusStop // Added from store
     } = addRouteStore;
 
-    // State for managing the AlertDialog and input
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
     const [currentStop, setCurrentStop] = React.useState<Waypoint | null>(null);
     const [stopNameInput, setStopNameInput] = React.useState("");
@@ -302,88 +297,115 @@ function AddRouteItems() {
     };
 
     const handleSaveName = () => {
-        if (currentStop) {
-            updateBusStopName(currentStop.id!, stopNameInput.trim());
+        if (currentStop && currentStop.id) {
+            updateBusStopName(currentStop.id, stopNameInput.trim());
         }
         setIsAlertOpen(false);
         setCurrentStop(null);
         setStopNameInput("");
     };
 
-    const handleClearWaypoints = () => {
-        clearNewRouteBusStops();
-        clearWaypointRoute();
-        clearIntermediateRoutes();
-        clearVertices();
-        // Potentially add clearNewRouteTypeSelection() if it makes sense here
+    const handleDeleteClick = async (stopId: string | undefined) => {
+        if (stopId) {
+            // Consider adding a confirmation dialog here if desired
+            await deleteBusStop(stopId);
+        } else {
+            console.warn("Attempted to delete a stop without an ID.");
+        }
+    };
+
+    const handleClearAllWaypoints = () => {
+        // Confirmation dialog could be useful here too
+        storeClearNewRouteBusStops();
+        storeClearWaypointRoute();
+        storeClearIntermediateRoutes();
+        storeClearVertices();
     };
     
-    // Helper to convert number to letter (A, B, C...)
     const getStopLetter = (index: number) => String.fromCharCode(65 + index);
 
     return (
-        <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden">
-            {newRouteBusStops.length === 0 ? (
-                <SidebarMenuSubItem>
-                    <span className="p-2 text-xs text-gray-400">
-                        Click on the map to add bus stops when "Add Route" is active.
-                    </span>
-                </SidebarMenuSubItem>
-            ) : (
-                newRouteBusStops.map((stop, index) => (
-                    <SidebarMenuSubItem key={stop.id || index} className="flex items-center justify-between group">
-                        <div className="flex flex-col text-xs">
-                            <span>
-                                <strong className="mr-1">{getStopLetter(index)}:</strong> 
-                                {stop.name ? `${stop.name}` : `Stop ${getStopLetter(index)}`}
-                            </span>
-                            <span className="ml-4 text-gray-500">
-                                Lat: {stop.location[1].toFixed(3)}, Lng: {stop.location[0].toFixed(3)}
-                            </span>
-                        </div>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="w-6 h-6 opacity-0 group-hover:opacity-100" // Show on hover
-                            onClick={() => handleEditClick(stop)}
-                        >
-                            <Pencil className="w-4 h-4" />
-                        </Button>
+        <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden flex flex-col h-full">
+            <div className="flex-grow overflow-y-auto pr-1"> {/* Added for scrolling long lists */}
+                {newRouteBusStops.length === 0 ? (
+                    <SidebarMenuSubItem>
+                        <span className="p-2 text-xs text-gray-400 italic">
+                            Click on the map to add bus stops.
+                        </span>
                     </SidebarMenuSubItem>
-                ))
-            )}
+                ) : (
+                    newRouteBusStops.map((stop, index) => (
+                        <SidebarMenuSubItem 
+                            key={stop.id || `stop-${index}`} // Use stop.id for stable key
+                            className="mb-2 p-2 border rounded-md shadow-sm hover:shadow-md transition-shadow" // Using shadcn-like styling
+                        >
+                            <div className="flex items-center justify-between">
+                                <div className="flex flex-col text-sm">
+                                    <span className="font-semibold">
+                                        {getStopLetter(index)}: {stop.name || `Unnamed Stop`}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        Lat: {stop.location[1].toFixed(3)}, Lng: {stop.location[0].toFixed(3)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="w-7 h-7" // Made icons always visible
+                                        onClick={() => handleEditClick(stop)}
+                                        aria-label="Edit stop name"
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="w-7 h-7 text-red-500 hover:text-red-700" // Made icons always visible
+                                        onClick={() => handleDeleteClick(stop.id)}
+                                        aria-label="Delete stop"
+                                    >
+                                        <Trash2 className="w-4 h-4" /> {/* Using Trash2 for a potentially different delete icon */}
+                                    </Button>
+                                </div>
+                            </div>
+                        </SidebarMenuSubItem>
+                    ))
+                )}
+            </div>
 
-            {/* Spacer if there are items, to push clear button down slightly */}
-            {newRouteBusStops.length > 0 && <div className="my-2 border-t border-border"></div>}
+            {/* Clear Waypoints Button - Pushed to bottom */}
+            <div className="mt-auto pt-2 border-t border-border">
+                <SidebarMenuSubItem>
+                    <SidebarMenuSubButton 
+                        className="justify-between font-bold cursor-pointer text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100" 
+                        onClick={handleClearAllWaypoints}
+                    >
+                        <span>Clear All Waypoints</span>
+                        <Trash className="w-5 h-5" />
+                    </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+            </div>
 
-            <SidebarMenuSubItem>
-                <SidebarMenuSubButton 
-                    className="justify-between font-bold cursor-pointer hover:text-red-500" 
-                    onClick={handleClearWaypoints}
-                >
-                    <span>Clear Waypoints</span>
-                    <Trash className="" />
-                </SidebarMenuSubButton>
-            </SidebarMenuSubItem>
-
-            {/* AlertDialog for editing stop name */}
+            {/* AlertDialog for editing stop name (remains the same) */}
             {currentStop && (
                 <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Edit Bus Stop Name</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Current Stop: {getStopLetter(newRouteBusStops.findIndex(s => s.id === currentStop.id))} 
-                                ({currentStop.location[1].toFixed(3)}, {currentStop.location[0].toFixed(3)})
+                                Stop: {getStopLetter(newRouteBusStops.findIndex(s => s.id === currentStop.id))} ({currentStop.location[1].toFixed(3)}, {currentStop.location[0].toFixed(3)})
+                                <br/> Current Name: {currentStop.name || "Not set"}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <div className="py-4">
-                            <Label htmlFor="stopName">Stop Name</Label>
+                        <div className="py-2"> {/* Reduced py */}
+                            <Label htmlFor="stopName" className="text-sm">New Stop Name</Label>
                             <Input
                                 id="stopName"
                                 value={stopNameInput}
                                 onChange={(e) => setStopNameInput(e.target.value)}
                                 placeholder="E.g., Central Station"
+                                className="mt-1"
                             />
                         </div>
                         <AlertDialogFooter>

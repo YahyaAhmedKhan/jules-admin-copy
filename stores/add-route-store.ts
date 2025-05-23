@@ -8,9 +8,10 @@ import { create } from 'zustand';
 interface AddRouteStore {
     newRouteBusStops: Waypoint[];
     addBusStop: (waypoint: Waypoint) => void;
-    removeBusStop: (index: number) => void;
+    // removeBusStop: (index: number) => void; // Old action removed
+    deleteBusStop: (stopId: string) => Promise<void>; // New action added
     clearNewRouteBusStops: () => void;
-    updateBusStopName: (id: string, name: string) => void; // Added updateBusStopName
+    updateBusStopName: (id: string, name: string) => void;
 
     waypointRoute: any;
     intermediateRoutes: intermediateRouteInfo[];
@@ -34,7 +35,6 @@ interface AddRouteStore {
 
 export interface intermediateRouteInfo {
     weight: number,
-    // geometry: { coordinates: [number, number][], type: "LineString" }
     geometry: any
 }
 
@@ -43,30 +43,21 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
     vertices: [],
     addVertex: (newVertex) => { set({ vertices: [...get().vertices, newVertex] }); },
     addBusStop: (waypoint) => {
-        // Ensure waypoint has a unique ID
         const waypointWithId = {
             ...waypoint,
-            id: waypoint.id || Date.now().toString(), // Assign unique ID if not present
+            id: waypoint.id || Date.now().toString(), 
         };
 
         set(state => ({ newRouteBusStops: [...state.newRouteBusStops, waypointWithId] }));
 
-        // Existing logic for getRoutesMapbox (ensure it uses newRouteBusStops from get())
         const newWaypoints = get().newRouteBusStops;
         if (newWaypoints.length > 1) {
             const lastTwo = newWaypoints.slice(-2);
-            // Ensure that the objects passed to getRoutesMapbox have the expected structure,
-            // especially if Waypoint and Vertex types differ significantly.
-            // The current getRoutesMapbox call seems to expect objects with a 'coordinates' property
-            // where coordinates is an array [longitude, latitude].
-            // Waypoint.location is [number, number] - check if order matches (lng, lat) or (lat, lng)
-            // For mapbox services, it's usually [longitude, latitude]. Assuming Waypoint.location is [lng, lat].
             const wayPointCoordinatesForMapbox = lastTwo.map(wp => ({
                 coordinates: [wp.location[0], wp.location[1]] 
             }));
 
             getRoutesMapbox(wayPointCoordinatesForMapbox).then((data) => {
-                // ... (rest of the existing mapbox logic)
                 const route = data.routes[0];
                 const intermediateRoute: intermediateRouteInfo = {
                     weight: route.weight,
@@ -75,7 +66,6 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
                         coordinates: route.geometry.coordinates
                     }
                 };
-                // console.log('inter', intermediateRoute) // Keep or remove console.log as preferred
                 const updatedIntermediateRoutes = [...get().intermediateRoutes, intermediateRoute];
                 set({ intermediateRoutes: updatedIntermediateRoutes });
 
@@ -87,16 +77,80 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
                 set({ waypointRoute: fullRoute });
 
             }).catch((error) => {
-                console.error("Error fetching route from Mapbox:", error); // Enhanced error logging
+                console.error("Error fetching route from Mapbox:", error);
             });
         }
     },
-    removeBusStop: (index) => set({ newRouteBusStops: get().newRouteBusStops.filter((_, i) => i !== index) }),
+    // removeBusStop: (index) => set({ newRouteBusStops: get().newRouteBusStops.filter((_, i) => i !== index) }), // Old implementation removed
+
+    deleteBusStop: async (stopId: string) => {
+        const currentStops = get().newRouteBusStops;
+        const stopIndexToRemove = currentStops.findIndex(stop => stop.id === stopId);
+
+        if (stopIndexToRemove === -1) {
+            console.warn("Bus stop not found for deletion:", stopId);
+            return;
+        }
+
+        // 1. Filter out the stop and its corresponding vertex
+        const updatedBusStops = currentStops.filter(stop => stop.id !== stopId);
+        
+        // Assuming vertices are in the same order as newRouteBusStops
+        const updatedVertices = get().vertices.filter((vertex, index) => index !== stopIndexToRemove);
+
+        set({
+            newRouteBusStops: updatedBusStops,
+            vertices: updatedVertices,
+            intermediateRoutes: [], // Clear old segments
+            waypointRoute: null,   // Clear old full route
+        });
+
+        // 3. Recalculate intermediate routes if more than 1 stop remains
+        if (updatedBusStops.length > 1) {
+            const newIntermediateRoutes: intermediateRouteInfo[] = [];
+            for (let i = 0; i < updatedBusStops.length - 1; i++) {
+                const pair = [updatedBusStops[i], updatedBusStops[i + 1]];
+                const wayPointCoordinatesForMapbox = pair.map(wp => ({
+                    coordinates: [wp.location[0], wp.location[1]]
+                }));
+                
+                try {
+                    const data = await getRoutesMapbox(wayPointCoordinatesForMapbox);
+                    if (data && data.routes && data.routes.length > 0) {
+                        const route = data.routes[0];
+                        const segment: intermediateRouteInfo = {
+                            weight: route.weight,
+                            geometry: {
+                                type: 'LineString',
+                                coordinates: route.geometry.coordinates
+                            }
+                        };
+                        newIntermediateRoutes.push(segment);
+                    } else {
+                        console.warn("No route found for segment:", pair);
+                    }
+                } catch (error) {
+                    console.error("Error fetching route for segment:", pair, error);
+                }
+            }
+            set({ intermediateRoutes: newIntermediateRoutes });
+
+            // 4. Rebuild full waypointRoute
+            if (newIntermediateRoutes.length > 0) {
+                const concatenatedCoordinates = newIntermediateRoutes.flatMap(route => route.geometry.coordinates);
+                const fullRoute = {
+                    type: 'LineString',
+                    coordinates: concatenatedCoordinates
+                };
+                set({ waypointRoute: fullRoute });
+            }
+        }
+    },
 
     clearNewRouteBusStops: () => set({ newRouteBusStops: [] }),
     clearIntermediateRoutes: () => set({ intermediateRoutes: [] }),
 
-    updateBusStopName: (id: string, name: string) => { // Added updateBusStopName implementation
+    updateBusStopName: (id: string, name: string) => {
         set(state => ({
             newRouteBusStops: state.newRouteBusStops.map(stop =>
                 stop.id === id ? { ...stop, name: name } : stop
@@ -122,7 +176,7 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
         newRouteBusStops: [],
         waypointRoute: null,
         intermediateRoutes: [],
-        vertices: [],
+        vertices: [], // This is already cleared
         editState: 'idle',
         newRouteTypeSelectionId: null
     }),

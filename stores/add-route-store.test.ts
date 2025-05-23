@@ -1,5 +1,6 @@
 import useAddRouteStore from './add-route-store'; // Adjust path as necessary
 import Waypoint from '@/types/waypoint'; // Adjust path as necessary
+import { Vertex } from '@/types/vertex'; // Added Vertex import
 import { act } from '@testing-library/react'; // Or your project's testing utility for Zustand
 
 // Mock getRoutesMapbox as it's called in addBusStop and involves external calls/promises
@@ -146,6 +147,154 @@ describe('useAddRouteStore', () => {
       const { newRouteBusStops } = useAddRouteStore.getState();
       expect(newRouteBusStops).toEqual(initialStops); // State should be unchanged
       expect(newRouteBusStops.find(s => s.id === '1')?.name).toBe('Stop 1');
+    });
+  });
+
+  describe('deleteBusStop', () => {
+    const mockInitialVertices: Vertex[] = [
+        { id: 101, latitude: 0, longitude: 0,osm_id:0 }, // Corresponds to stop 's1'
+        { id: 102, latitude: 1, longitude: 1 ,osm_id:0}, // Corresponds to stop 's2'
+        { id: 103, latitude: 2, longitude: 2 ,osm_id:0}, // Corresponds to stop 's3'
+    ];
+    const mockInitialBusStops: Waypoint[] = [
+        { id: 's1', location: [0, 0], name: 'Stop 1' },
+        { id: 's2', location: [1, 1], name: 'Stop 2' },
+        { id: 's3', location: [2, 2], name: 'Stop 3' },
+    ];
+
+    // Note: The top-level beforeEach in 'useAddRouteStore' already resets 
+    // newRouteBusStops and vertices, and clears mocks.
+    // This specific beforeEach for 'deleteBusStop' might be redundant if the general one is sufficient.
+    // However, if more specific setup for deleteBusStop tests is needed later, it can be useful.
+    // For now, we rely on the main beforeEach.
+    // If these tests needed specific initial intermediateRoutes or waypointRoute, this beforeEach would set them.
+    /*
+    beforeEach(() => {
+        act(() => {
+            useAddRouteStore.setState({
+                newRouteBusStops: [], // Or mockInitialBusStops if a test starts with data
+                vertices: [],       // Or mockInitialVertices
+                waypointRoute: null,
+                intermediateRoutes: [],
+                // editState and newRouteTypeSelectionId are already reset by the main beforeEach
+            });
+        });
+        (require('@/app/services/mapbox-service').getRoutesMapbox as jest.Mock).mockClear();
+    });
+    */
+
+    it('should remove the bus stop and its corresponding vertex', async () => {
+        act(() => {
+            useAddRouteStore.setState({ 
+                newRouteBusStops: [...mockInitialBusStops], 
+                vertices: [...mockInitialVertices] 
+            });
+        });
+
+        await act(async () => {
+            await useAddRouteStore.getState().deleteBusStop('s2');
+        });
+
+        const { newRouteBusStops, vertices } = useAddRouteStore.getState();
+        expect(newRouteBusStops.length).toBe(2);
+        expect(newRouteBusStops.find(s => s.id === 's2')).toBeUndefined();
+        expect(vertices.length).toBe(2);
+        expect(vertices.find(v => v.id === 102)).toBeUndefined(); 
+        expect(vertices[0].id).toBe(101);
+        expect(vertices[1].id).toBe(103);
+    });
+
+    it('should clear and recalculate intermediateRoutes and waypointRoute', async () => {
+        const mockMapboxAPI = require('@/app/services/mapbox-service').getRoutesMapbox as jest.Mock;
+        mockMapboxAPI.mockResolvedValue({ 
+            routes: [{
+                weight: 50,
+                geometry: { type: 'LineString', coordinates: [[0,0], [2,2]] }
+            }]
+        });
+
+        act(() => {
+            useAddRouteStore.setState({
+                newRouteBusStops: [...mockInitialBusStops],
+                vertices: [...mockInitialVertices],
+                intermediateRoutes: [ { weight: 10, geometry: { type: 'LineString', coordinates: [[0,0],[1,1]]}}, { weight: 20, geometry: { type: 'LineString', coordinates: [[1,1],[2,2]]}} ],
+                waypointRoute: { type: 'LineString', coordinates: [[0,0],[1,1],[2,2]] }
+            });
+        });
+        
+        await act(async () => {
+            await useAddRouteStore.getState().deleteBusStop('s2'); 
+        });
+
+        const { newRouteBusStops, intermediateRoutes, waypointRoute } = useAddRouteStore.getState();
+        
+        expect(newRouteBusStops.length).toBe(2); 
+        expect(mockMapboxAPI).toHaveBeenCalledTimes(1); 
+        expect(mockMapboxAPI).toHaveBeenCalledWith([
+            { coordinates: [0,0] }, 
+            { coordinates: [2,2] }  
+        ]);
+
+        expect(intermediateRoutes.length).toBe(1);
+        expect(intermediateRoutes[0].geometry.coordinates).toEqual([[0,0], [2,2]]);
+        
+        expect(waypointRoute).toBeDefined();
+        expect(waypointRoute.coordinates).toEqual([[0,0], [2,2]]);
+    });
+
+    it('should not call getRoutesMapbox if less than 2 stops remain', async () => {
+        const singleStop: Waypoint[] = [{ id: 's1', location: [0,0], name: 'Stop 1' }];
+        const singleVertex: Vertex[] = [{ id: 101, latitude: 0, longitude: 0, osm_id: 0 }];
+        act(() => {
+            useAddRouteStore.setState({ 
+                newRouteBusStops: singleStop, 
+                vertices: singleVertex 
+            });
+        });
+        const mockMapboxAPI = require('@/app/services/mapbox-service').getRoutesMapbox as jest.Mock;
+
+        await act(async () => {
+            await useAddRouteStore.getState().deleteBusStop('s1');
+        });
+        
+        const { newRouteBusStops, intermediateRoutes, waypointRoute } = useAddRouteStore.getState();
+        expect(newRouteBusStops.length).toBe(0);
+        expect(mockMapboxAPI).not.toHaveBeenCalled();
+        expect(intermediateRoutes.length).toBe(0);
+        expect(waypointRoute).toBeNull();
+    });
+
+    it('should handle deletion when only two stops exist, resulting in one stop', async () => {
+        const twoStops: Waypoint[] = [
+            { id: 's1', location: [0,0], name: 'Stop 1'},
+            { id: 's2', location: [1,1], name: 'Stop 2'}
+        ];
+        const twoVertices: Vertex[] = [
+            { id: 101, latitude: 0, longitude: 0, osm_id: 0 },
+            { id: 102, latitude: 1, longitude: 1, osm_id: 0 }
+        ];
+         act(() => {
+            useAddRouteStore.setState({ 
+                newRouteBusStops: twoStops, 
+                vertices: twoVertices,
+                intermediateRoutes: [{ weight: 10, geometry: { type: 'LineString', coordinates: [[0,0],[1,1]]}}],
+                waypointRoute: { type: 'LineString', coordinates: [[0,0],[1,1]]}
+            });
+        });
+        const mockMapboxAPI = require('@/app/services/mapbox-service').getRoutesMapbox as jest.Mock;
+
+        await act(async () => {
+            await useAddRouteStore.getState().deleteBusStop('s2');
+        });
+
+        const { newRouteBusStops, intermediateRoutes, waypointRoute, vertices } = useAddRouteStore.getState();
+        expect(newRouteBusStops.length).toBe(1);
+        expect(newRouteBusStops[0].id).toBe('s1');
+        expect(vertices.length).toBe(1);
+        expect(vertices[0].id).toBe(101);
+        expect(mockMapboxAPI).not.toHaveBeenCalled();
+        expect(intermediateRoutes.length).toBe(0);
+        expect(waypointRoute).toBeNull();
     });
   });
   
