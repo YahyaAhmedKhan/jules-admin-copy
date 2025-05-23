@@ -2,7 +2,7 @@
 
 import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash } from "lucide-react"
 import { motion } from "framer-motion";
-import * as React from "react"; // Ensured React is imported for useMemo
+import * as React from "react"; // Ensure React is imported
 
 import {
     Sidebar,
@@ -17,7 +17,7 @@ import {
     SidebarMenuSkeleton,
     SidebarMenuSub,
     SidebarMenuSubButton,
-    SidebarMenuSubItem,
+    SidebarMenuSubItem, // Added this import
     useSidebar,
 } from "@/components/ui/sidebar"
 import { JSX } from "react/jsx-runtime"
@@ -25,11 +25,11 @@ import useBusRouteStore from "@/stores/bus-routes-store"
 import useSidebarStore from "@/stores/sidebar-store"
 
 import { Checkbox } from "@/components/ui/checkbox"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible" // Corrected path
 import useAddRouteStore from "@/stores/add-route-store"
-import { useBusStore } from "@/stores/bus-store"
+import { useBusStore } from "@/stores/bus-store" // Corrected to useBusStore from "@/stores/bus-store"
 import { AdminMenuKey } from "@/enums/admin-menu-key";
-import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; // Added BusRouteEdgeModel import
+import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; // Ensure this is imported
 
 
 interface MenuItem {
@@ -79,46 +79,50 @@ const menuSubitems: { [key: string]: () => JSX.Element } = {
 
 }
 
-
 function HomeItems() {
     const busRouteStore = useBusRouteStore();
     const {
-        busRoutes, // Use busRoutes for grouping
+        busRoutesByID, // Using busRoutesByID for unique routes
         busRoutesVisibility,
         toggleRouteVisibility,
-        busRouteGroupVisibility, // Added from store
-        toggleGroupVisibility,  // Added from store
+        busRouteGroupVisibility,
+        toggleGroupVisibility,
+        loading: routesLoading, // Get loading state
     } = busRouteStore;
 
     const busStore = useBusStore();
-    const { buses, busVisibility, toggleBusVisibility } = busStore;
+    // Assuming busStore has a loading state, if not, busesLoading would be undefined.
+    // If busStore.loading doesn't exist, you might need to adjust or ensure it's added to the store.
+    const { buses, busVisibility, toggleBusVisibility, loading: busesLoading } = busStore; 
 
-    // Group bus routes by bus_type_id
-    const groupedBusRoutes = React.useMemo(() => {
-        const groups: Map<number, { description: string, routes: BusRouteEdgeModel[] }> = new Map();
-        if (busRoutes && Array.isArray(busRoutes)) {
-            busRoutes.forEach(route => {
-                if (route && typeof route.bus_type_id !== 'undefined' && route.bus_type_description) {
-                    if (!groups.has(route.bus_type_id)) {
-                        groups.set(route.bus_type_id, {
-                            description: route.bus_type_description,
-                            routes: [],
+    const groupedRoutesByBusType = React.useMemo(() => {
+        const groups: Map<number, { description: string, route_ids: Set<number> }> = new Map();
+        if (busRoutesByID && Object.keys(busRoutesByID).length > 0) {
+            for (const routeIdStr in busRoutesByID) {
+                const routeId = parseInt(routeIdStr, 10);
+                const routeEdges = busRoutesByID[routeId];
+                if (routeEdges && routeEdges.length > 0) {
+                    const firstEdge = routeEdges[0]; // Use the first edge for type info
+                    const { bus_type_id, bus_type_description } = firstEdge;
+
+                    if (!groups.has(bus_type_id)) {
+                        groups.set(bus_type_id, {
+                            description: bus_type_description,
+                            route_ids: new Set(),
                         });
                     }
-                    groups.get(route.bus_type_id)!.routes.push(route);
+                    groups.get(bus_type_id)!.route_ids.add(routeId);
                 }
-            });
+            }
         }
         return groups;
-    }, [busRoutes]);
+    }, [busRoutesByID]);
 
-    // Check if bus routes data is still loading or empty
-     const isLoadingOrEmptyRoutes = busRoutes.length === 0;
-
+    const isLoadingOrEmptyRoutes = routesLoading || Object.keys(busRoutesByID || {}).length === 0;
 
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden">
-            {/* Bus Routes Section - Now with Grouping */}
+            {/* Bus Routes Section - Grouped */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -137,16 +141,25 @@ function HomeItems() {
                             className="overflow-hidden"
                         >
                             <SidebarMenuSub>
-                                {isLoadingOrEmptyRoutes ? (
-                                    Array.from({ length: 3 }).map((_, index) => (
+                                {isLoadingOrEmptyRoutes && !routesLoading ? ( // Show skeleton only if loading, or empty message if not loading but empty
+                                    <SidebarMenuSubItem>
+                                      <span className="p-2 text-xs text-gray-500">No bus routes available.</span>
+                                    </SidebarMenuSubItem>
+                                ) : routesLoading ? (
+                                     Array.from({ length: 3 }).map((_, index) => (
                                         <SidebarMenuSkeleton key={`loading-group-${index}`}>Loading Groups...</SidebarMenuSkeleton>
                                     ))
                                 ) : (
-                                    Array.from(groupedBusRoutes.entries()).map(([busTypeId, groupData]) => (
-                                        <Collapsible key={`group-${busTypeId}`} className="group/collapsible-inner" open={busRouteGroupVisibility[busTypeId]} onOpenChange={() => toggleGroupVisibility(busTypeId)}>
+                                    Array.from(groupedRoutesByBusType.entries()).map(([busTypeId, groupData]) => (
+                                        <Collapsible 
+                                            key={`group-${busTypeId}`} 
+                                            className="group/collapsible-inner" 
+                                            open={busRouteGroupVisibility[busTypeId] !== undefined ? busRouteGroupVisibility[busTypeId] : true} // Default to true if undefined
+                                            onOpenChange={() => toggleGroupVisibility(busTypeId)}
+                                        >
                                             <SidebarMenuItem>
                                                 <CollapsibleTrigger asChild>
-                                                    <SidebarMenuButton variant="outline" className="font-semibold"> {/* Added variant and font-semibold for distinction */}
+                                                    <SidebarMenuButton variant="outline" className="font-semibold">
                                                         <span>{groupData.description}</span>
                                                         <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible-inner:-rotate-90" />
                                                     </SidebarMenuButton>
@@ -160,23 +173,24 @@ function HomeItems() {
                                                         className="overflow-hidden"
                                                     >
                                                         <SidebarMenuSub>
-                                                            {groupData.routes.length > 0 ? (
-                                                                groupData.routes.map(route => (
+                                                            {groupData.route_ids.size > 0 ? (
+                                                                Array.from(groupData.route_ids).map(routeId => (
                                                                     <SidebarMenuSubButton
                                                                         className="cursor-pointer"
-                                                                        key={`bus-route-${route.route_id}`}
+                                                                        key={`bus-route-${routeId}`} // Key is now unique
                                                                         onClick={() => {
-                                                                            if (busRouteGroupVisibility[busTypeId]) { // Only allow toggle if group is visible
-                                                                                toggleRouteVisibility(route.route_id);
+                                                                            if (busRouteGroupVisibility[busTypeId] !== false) {
+                                                                                toggleRouteVisibility(routeId);
                                                                             }
                                                                         }}
-                                                                        disabled={!busRouteGroupVisibility[busTypeId]} // Disable button if group is collapsed
+                                                                        // disabled property is implicitly handled by clickability check if needed, or can be explicit
                                                                     >
                                                                         <Checkbox
-                                                                            checked={busRoutesVisibility[route.route_id] === true && busRouteGroupVisibility[busTypeId] === true}
-                                                                            disabled={!busRouteGroupVisibility[busTypeId]} // Disable checkbox if group is collapsed
+                                                                            checked={busRoutesVisibility[routeId] === true && busRouteGroupVisibility[busTypeId] !== false}
+                                                                            disabled={busRouteGroupVisibility[busTypeId] === false}
+                                                                            aria-label={`Toggle visibility for Route ${routeId}`}
                                                                         />
-                                                                        <span>{`Route ${route.route_id}`}</span>
+                                                                        <span>{`Route ${routeId}`}</span>
                                                                     </SidebarMenuSubButton>
                                                                 ))
                                                             ) : (
@@ -197,12 +211,12 @@ function HomeItems() {
                 </SidebarMenuItem>
             </Collapsible>
 
-            {/* Buses Section (remains unchanged) */}
+            {/* Buses Section (remains unchanged from previous version) */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton>
-                            <Bus />
+                        <SidebarMenuButton >
+                            <Bus/>
                             <span>Bus Locations</span>
                             <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
                         </SidebarMenuButton>
@@ -216,23 +230,27 @@ function HomeItems() {
                             className="overflow-hidden"
                         >
                             <SidebarMenuSub>
-                                {buses.length > 0 ? (
-                                    buses.map((bus, i) => (
-                                        <SidebarMenuSubButton
-                                            className="cursor-pointer"
-                                            key={`bus-location-${i}`} // Changed key to avoid conflict
-                                            onClick={() => toggleBusVisibility(i)}
-                                        >
-                                            <Checkbox checked={busVisibility![i]} />
-                                            <span>{bus.id}</span>
-                                        </SidebarMenuSubButton>
-                                    ))
-                                ) : (
+                                {busesLoading ? (
                                     Array.from({ length: 3 }).map((_, index) => (
                                         <SidebarMenuSkeleton key={`loading-bus-${index}`}>
                                             Loading Buses...
                                         </SidebarMenuSkeleton>
                                     ))
+                                ) : buses.length > 0 ? (
+                                    buses.map((bus, i) => (
+                                        <SidebarMenuSubButton
+                                            className="cursor-pointer"
+                                            key={`bus-location-${bus.id || i}`} // Use bus.id if available for a more stable key
+                                            onClick={() => toggleBusVisibility(i)} // Assuming toggleBusVisibility uses index
+                                        >
+                                            <Checkbox checked={busVisibility![i]} aria-label={`Toggle visibility for Bus ${bus.id || i}`} />
+                                            <span>{bus.id || `Bus ${i + 1}`}</span>
+                                        </SidebarMenuSubButton>
+                                    ))
+                                ) : (
+                                   <SidebarMenuSubItem>
+                                      <span className="p-2 text-xs text-gray-500">No buses available.</span>
+                                    </SidebarMenuSubItem>
                                 )}
                             </SidebarMenuSub>
                         </motion.div>
@@ -242,6 +260,7 @@ function HomeItems() {
         </SidebarMenuSub>
     );
 }
+
 
 function AddRouteItems() {
     const addRouteStore = useAddRouteStore()
