@@ -2,6 +2,10 @@ import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model';
 import { create } from 'zustand';
 import { Location } from '@/types/location';
 import { BusStop } from '@/types/bus-stop';
+import { BusRoutesService } from '@/services/busRoutesService'; // Added import
+
+// Instantiate the service
+const busRoutesService = new BusRoutesService();
 
 // Define route colors - vibrant colors that are visually distinct
 const ROUTE_COLORS = [
@@ -35,7 +39,7 @@ interface BusRoutesStore {
     fetchRoutes: () => Promise<void>;
     getBusRoutes: () => any[]; // Auto-fetch if empty
     getRouteColor: (index: number) => string; // Get color for a specific route
-    toggleRouteVisibility: (index: number) => void; // Toggle visibility for a specific route
+    toggleRouteVisibility: (routeId: number) => void; // Changed index to routeId
     busRouteGroupVisibility: { [busTypeId: number]: boolean };
     toggleGroupVisibility: (busTypeId: number) => void;
 
@@ -58,27 +62,47 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
     },
     routeColors: ROUTE_COLORS,
     setBusRoutesVisibility: (routeId: number, visibility: boolean) => {
-        const visibilityState = get().busRoutesVisibility;
-        visibilityState[routeId] = visibility;
-        set({ busRoutesVisibility: visibilityState });
+        set(state => ({ 
+            busRoutesVisibility: { 
+                ...state.busRoutesVisibility, 
+                [routeId]: visibility 
+            } 
+        }));
     },
+
+    toggleGroupVisibility: (busTypeId: number) => { 
+        const { busRoutes, busRouteGroupVisibility, busRoutesVisibility } = get();
+        
+        const newGroupVisibilityState = { ...busRouteGroupVisibility };
+        newGroupVisibilityState[busTypeId] = !newGroupVisibilityState[busTypeId];
+        const currentGroupIsVisible = newGroupVisibilityState[busTypeId];
+
+        const newRoutesVisibilityState = { ...busRoutesVisibility };
+        busRoutes.forEach(route => {
+            if (route.bus_type_id === busTypeId) {
+                newRoutesVisibilityState[route.route_id] = currentGroupIsVisible;
+            }
+        });
+
+        set({ 
+            busRouteGroupVisibility: newGroupVisibilityState, 
+            busRoutesVisibility: newRoutesVisibilityState 
+        });
+    },
+
     fetchRoutes: async () => {
         set({ loading: true, error: null });
         try {
-            const response = await fetch('/api/busRoutes'); // Use your API
-
-            if (!response.ok) throw new Error('Failed to fetch bus routes');
-
-            const data = await response.json();
-
+            const fetchedRoutes = await busRoutesService.getAllBusRoutes(); 
+            
             set({
-                busRoutes: data.routes,
-                busRoutesVisibility: Object.fromEntries(data.routes.map((route: BusRouteEdgeModel) => [route.route_id, true])),
+                busRoutes: fetchedRoutes, 
+                busRoutesVisibility: Object.fromEntries(fetchedRoutes.map((route: BusRouteEdgeModel) => [route.route_id, true])),
                 loading: false
             });
 
             const groupedById: { [key: number]: BusRouteEdgeModel[] } = {};
-            data.routes.forEach((route: BusRouteEdgeModel) => {
+            fetchedRoutes.forEach((route: BusRouteEdgeModel) => {
                 const id = route.route_id; // Adjust if route ID is stored under a different key
                 if (!groupedById[id]) {
                     groupedById[id] = [];
@@ -92,97 +116,71 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
 
             // Initialize busRouteGroupVisibility
             const groupVisibilityInit: { [busTypeId: number]: boolean } = {};
-            if (data.routes && Array.isArray(data.routes)) {
-                data.routes.forEach((route: BusRouteEdgeModel) => {
-                    if (route && typeof route.bus_type_id !== 'undefined') {
-                        groupVisibilityInit[route.bus_type_id] = true; // Default to true (expanded)
-                    }
-                });
-            }
+            fetchedRoutes.forEach((route: BusRouteEdgeModel) => {
+                if (typeof route.bus_type_id !== 'undefined') {
+                    groupVisibilityInit[route.bus_type_id] = true; 
+                }
+            });
             set({ busRouteGroupVisibility: groupVisibilityInit });
 
-            const tempStopsById: { [key: number]: Set<string> } = {};
 
-            data.routes.forEach((route: BusRouteEdgeModel) => {
+            const tempStopsById: { [key: number]: Set<string> } = {};
+            fetchedRoutes.forEach((route: BusRouteEdgeModel) => {
                 const id = route.route_id;
 
                 if (!tempStopsById[id]) {
                     tempStopsById[id] = new Set<string>();
                 }
 
-                tempStopsById[id].add(JSON.stringify({
-                    latitude: route.source_lat,
-                    longitude: route.source_lon
-                }));
-
-                tempStopsById[id].add(JSON.stringify({
-                    latitude: route.target_lat,
-                    longitude: route.target_lon
-                }));
+                // Ensure Location objects are stringified correctly
+                tempStopsById[id].add(JSON.stringify({ latitude: route.source_lat, longitude: route.source_lon } as Location));
+                tempStopsById[id].add(JSON.stringify({ latitude: route.target_lat, longitude: route.target_lon } as Location));
             });
 
-            const stopsById: { [key: number]: BusStop[] } = {};
-
-            Object.entries(tempStopsById).forEach(([id, locSet]) => {
-                stopsById[Number(id)] = Array.from(locSet).map((locStr, index) => {
+            const stopsByIdProcessed: { [key: number]: BusStop[] } = {};
+            Object.entries(tempStopsById).forEach(([idString, locSet]) => {
+                const currentRouteId = Number(idString);
+                stopsByIdProcessed[currentRouteId] = Array.from(locSet).map((locStr, index) => {
                     const loc: Location = JSON.parse(locStr);
+                    // Ensure BusStop creation aligns with its definition
                     const busStop: BusStop = {
-                        routeId: Number(id),
+                        id: `stop-${currentRouteId}-${index + 1}`, // Example unique ID
                         location: loc,
-                        index: index + 1
+                        index: index + 1, // 1-based index
+                        routeId: currentRouteId, 
+                        name: `Stop ${index + 1} for Route ${currentRouteId}` // Example name, can be undefined
                     };
                     return busStop;
                 });
             });
-
-            set({
-                busStopsByID: stopsById,
-            });
+            set({ busStopsByID: stopsByIdProcessed });
 
         } catch (error) {
+            console.error("Error fetching bus routes in store:", error);
             set({ error: (error as Error).message, loading: false });
         }
     },
 
-    getBusRoutes: () => {
+    getBusRoutes: () => { 
         if (get().busRoutes.length === 0 && !get().loading) {
-            get().fetchRoutes(); // Fetch only if routes are empty and not already loading
+            get().fetchRoutes(); 
         }
         return get().busRoutes;
     },
 
-    // Get color for a specific route index, with cycling for when there are more routes than colors
-    getRouteColor: (index: number) => {
+    getRouteColor: (routeId: number) => { 
         const colors = get().routeColors;
-        return colors[index % colors.length];
+        return colors[routeId % colors.length]; // Assuming routeId can be used for cycling colors
     },
 
-    toggleRouteVisibility: (index: number) => {
-        const visibility = get().busRoutesVisibility;
-        visibility[index] = !visibility[index];
-        set({ busRoutesVisibility: visibility });
-    },
-
-    // Added toggleGroupVisibility function
-    toggleGroupVisibility: (busTypeId: number) => {
-        const { busRoutes, busRouteGroupVisibility, busRoutesVisibility } = get();
-        
-        const newGroupVisibility = { ...busRouteGroupVisibility };
-        newGroupVisibility[busTypeId] = !newGroupVisibility[busTypeId];
-        const currentGroupState = newGroupVisibility[busTypeId];
-
-        const newRoutesVisibility = { ...busRoutesVisibility };
-        busRoutes.forEach(route => {
-            if (route.bus_type_id === busTypeId) {
-                newRoutesVisibility[route.route_id] = currentGroupState;
+    toggleRouteVisibility: (routeId: number) => { 
+        set(state => ({
+            busRoutesVisibility: {
+                ...state.busRoutesVisibility,
+                [routeId]: !state.busRoutesVisibility[routeId]
             }
-        });
-
-        set({ 
-            busRouteGroupVisibility: newGroupVisibility, 
-            busRoutesVisibility: newRoutesVisibility 
-        });
-    },
+        }));
+    }
 }));
 
 export default useBusRouteStore;
