@@ -1,0 +1,160 @@
+{
+    "routes": [
+        {
+            "weight_name": "auto",
+            "weight": 4.746,
+            "duration": 4.746,
+            "distance": 38.228,
+            "legs": [
+                {
+                    "via_waypoints": [],
+                    "admins": [
+                        {
+                            "iso_3166_1_alpha3": "PAK",
+                            "iso_3166_1": "PK"
+                        }
+                    ],
+                    "weight": 4.746,
+                    "duration": 4.746,
+                    "steps": [
+                        {
+                            "intersections": [
+                                {
+                                    "bearings": [
+                                        41
+                                    ],
+                                    "entry": [
+                                        true
+                                    ],
+                                    "mapbox_streets_v8": {
+                                        "class": "primary"
+                                    },
+                                    "is_urban": true,
+                                    "admin_index": 0,
+                                    "out": 0,
+                                    "geometry_index": 0,
+                                    "location": [
+                                        67.066643,
+                                        24.791145
+                                    ]
+                                }
+                            ],
+                            "maneuver": {
+                                "type": "depart",
+                                "instruction": "Drive northeast on Khayaban e Ittehad.",
+                                "bearing_after": 41,
+                                "bearing_before": 0,
+                                "location": [
+                                    67.066643,
+                                    24.791145
+                                ]
+                            },
+                            "name": "Khayaban e Ittehad",
+                            "duration": 4.746,
+                            "distance": 38.228,
+                            "driving_side": "left",
+                            "weight": 4.746,
+                            "mode": "driving",
+                            "geometry": {
+                                "coordinates": [
+                                    [
+                                        67.066643,
+                                        24.791145
+                                    ],
+                                    [
+                                        67.066889,
+                                        24.791405
+                                    ]
+                                ],
+                                "type": "LineString"
+                            }
+                        },
+                        {
+                            "intersections": [
+                                {
+                                    "bearings": [
+                                        221
+                                    ],
+                                    "entry": [
+                                        true
+                                    ],
+                                    "in": 0,
+                                    "admin_index": 0,
+                                    "geometry_index": 1,
+                                    "location": [
+                                        67.066889,
+                                        24.791405
+                                    ]
+                                }
+                            ],
+                            "maneuver": {
+                                "type": "arrive",
+                                "instruction": "You have arrived at your destination.",
+                                "bearing_after": 0,
+                                "bearing_before": 41,
+                                "location": [
+                                    67.066889,
+                                    24.791405
+                                ]
+                            },
+                            "name": "Khayaban e Ittehad",
+                            "duration": 0,
+                            "distance": 0,
+                            "driving_side": "left",
+                            "weight": 0,
+                            "mode": "driving",
+                            "geometry": {
+                                "coordinates": [
+                                    [
+                                        67.066889,
+                                        24.791405
+                                    ],
+                                    [
+                                        67.066889,
+                                        24.791405
+                                    ]
+                                ],
+                                "type": "LineString"
+                            }
+                        }
+                    ],
+                    "distance": 38.228,
+                    "summary": "Khayaban e Ittehad"
+                }
+            ],
+            "geometry": {
+                "coordinates": [
+                    [
+                        67.066643,
+                        24.791145
+                    ],
+                    [
+                        67.066889,
+                        24.791405
+                    ]
+                ],
+                "type": "LineString"
+            }
+        }
+    ],
+    "waypoints": [
+        {
+            "distance": 0.194,
+            "name": "Khayaban e Ittehad",
+            "location": [
+                67.066643,
+                24.791145
+            ]
+        },
+        {
+            "distance": 0.435,
+            "name": "Khayaban e Ittehad",
+            "location": [
+                67.066889,
+                24.791405
+            ]
+        }
+    ],
+    "code": "Ok",
+    "uuid": "Cr26L9JaDTiwmptWm7hfjzP2z7ukiE1bLJdl-8kkQiI4B7mXOp80Cw=="
+}
