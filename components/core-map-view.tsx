@@ -13,11 +13,11 @@ import { getMapCoordinates, getMapInstance, getMapZoom, setMapInstance } from "@
 
 
 export default function CoreMapView() {
-    const { busRoutesVisibility, busRoutes, loading, error, busRoutesByID, fetchRoutes, getBusRoutes: getRoutes, getRouteColor, busStopsByID } = useBusRouteStore();
-    // Updated destructuring: newWaypoints -> newRouteBusStops, addWaypoint -> addBusStop
-    const { waypointRoute, newRouteBusStops, vertices, addVertex, addBusStop, addWaypointRoute, intermediateRoutes } = useAddRouteStore();
-    const { fetchBuses, buses, getBuses, busVisibility } = useBusStore();
-    const { activeMenu, setActiveMenu: setActive } = useSidebarStore();
+    // Ensure mapGroupVisibilityState is destructured
+    const { busRoutesVisibility, busRoutesByID, fetchRoutes, getRouteColor, busStopsByID, mapGroupVisibilityState } = useBusRouteStore();
+    const { waypointRoute, newRouteBusStops, vertices, addVertex, addBusStop, intermediateRoutes } = useAddRouteStore();
+    const { fetchBuses, buses, busVisibility } = useBusStore();
+    const { activeMenu } = useSidebarStore();
 
     const osmGraphService: OSMGraphService = new OSMGraphService()
 
@@ -34,7 +34,6 @@ export default function CoreMapView() {
         const nearestVertex: Vertex = await osmGraphService.getNearestNode(lat, lng)
         console.log('response', nearestVertex)
 
-        // Updated call to use addBusStop with coordinate array
         addBusStop([nearestVertex.longitude, nearestVertex.latitude]); 
         addVertex(nearestVertex);
 
@@ -82,11 +81,28 @@ export default function CoreMapView() {
 
         )}
         {
-            Object.entries(busRoutesByID).map(([routeId, routeSegments], colorIndex) => {
-                const routeIdNumber: number = Number(routeId)
-                if (!busRoutesVisibility[routeIdNumber]) return null;
+            Object.entries(busRoutesByID).map(([routeId, routeSegments]) => {
+                const routeIdNumber: number = Number(routeId);
 
-                const routeColor = getRouteColor(Number(routeIdNumber));
+                if (!routeSegments || routeSegments.length === 0) {
+                    console.warn(`Route ID ${routeId} has no segments. Skipping rendering.`);
+                    return null; 
+                }
+                const busTypeIdForGroup = routeSegments[0].bus_type_id; 
+                if (busTypeIdForGroup === undefined) {
+                    console.warn(`Route ID ${routeId} segments miss bus_type_id. Skipping rendering.`);
+                    return null; 
+                }
+
+                // New combined visibility check:
+                const isGroupVisibleOnMap = mapGroupVisibilityState[busTypeIdForGroup] !== false; 
+                const isRouteIndividuallyVisible = busRoutesVisibility[routeIdNumber] !== false;
+
+                if (!isGroupVisibleOnMap || !isRouteIndividuallyVisible) {
+                    return null; // Do not render this route or its segments
+                }
+
+                const routeColor = getRouteColor(busTypeIdForGroup); 
 
                 return routeSegments.map((segment, index) => (
                     <Source
@@ -102,7 +118,6 @@ export default function CoreMapView() {
                             properties: {}
                         }}
                     >
-                        {/* Border Layer */}
                         <Layer
                             id={`route-border-${routeIdNumber}-${index}`}
                             type="line"
@@ -113,13 +128,12 @@ export default function CoreMapView() {
                                 "line-opacity": 0.3
                             }}
                         />
-                        {/* Main Colored Route */}
                         <Layer
                             id={`route-line-${routeIdNumber}-${index}`}
                             type="line"
                             layout={{ "line-join": "round", "line-cap": "round" }}
                             paint={{
-                                "line-color": routeColor,
+                                "line-color": routeColor, 
                                 "line-width": 5
                             }}
                         />
@@ -130,22 +144,42 @@ export default function CoreMapView() {
 
         {/* drawing bus stops */}
         {
-            Object.entries(busStopsByID).map(([routeId, locations], routeIndex) => {
-                const routeIdNumber: number = Number(routeId)
-                if (!busRoutesVisibility[routeIdNumber]) return null;
+            Object.entries(busStopsByID).map(([routeIdStr, locations]) => {
+                const routeIdForStops = Number(routeIdStr);
 
-                return locations.map((busStop, index) => {
-                    return busStopMarker(busStop, getRouteColor(busStop.routeId));
+                const routeSegmentsForGroupInfo = busRoutesByID[routeIdForStops];
+                if (!routeSegmentsForGroupInfo || routeSegmentsForGroupInfo.length === 0) {
+                    // console.warn(`No route segments found for routeId ${routeIdForStops}, cannot determine group visibility for stops.`);
+                    return null; 
+                }
+                const busTypeIdForStopsGroup = routeSegmentsForGroupInfo[0].bus_type_id;
+                if (busTypeIdForStopsGroup === undefined) {
+                    // console.warn(`Bus_type_id undefined for routeId ${routeIdForStops}, cannot determine group visibility for stops.`);
+                    return null; 
+                }
+
+                // New combined visibility check for the entire group of stops for this routeId:
+                const isStopGroupVisibleOnMap = mapGroupVisibilityState[busTypeIdForStopsGroup] !== false;
+                const isParentRouteIndividuallyVisible = busRoutesVisibility[routeIdForStops] !== false;
+
+                if (!isStopGroupVisibleOnMap || !isParentRouteIndividuallyVisible) {
+                    return null; // Do not render any stops for this routeId
+                }
+                
+                return locations.map((busStop) => { 
+                    let colorForStopMarker = '#CCCCCC'; 
+                    if (busTypeIdForStopsGroup !== undefined) { 
+                        colorForStopMarker = getRouteColor(busTypeIdForStopsGroup);
+                    }
+                    return busStopMarker(busStop, colorForStopMarker);
                 });
             })
         }
 
-        {/* Updated Marker Rendering Loop */}
         {
             newRouteBusStops?.length > 0 && activeMenu.addRoute &&
-            newRouteBusStops.map((busStop) => { // Changed from waypoint, index removed from .map()
+            newRouteBusStops.map((busStop) => { 
                 return (
-                    // Pass the busStop object and its 'index' property
                     newWaypointMarker(busStop, busStop.index) 
                 );
             })
@@ -154,7 +188,6 @@ export default function CoreMapView() {
         {
             waypointRoute && activeMenu.addRoute &&
             <Source
-
                 id="waypoint-route"
                 type="geojson"
                 data={
@@ -182,7 +215,7 @@ export default function CoreMapView() {
         {
             buses?.length > 0 &&
             buses.map((bus, index) => {
-                if (!busVisibility![index]) return null; 
+                if (!busVisibility || !busVisibility[index]) return null; 
                 return busMarker(bus);
             })
         }

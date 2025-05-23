@@ -1,6 +1,7 @@
 "use client"
 
-import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" 
+// Updated imports: Added Eye, EyeOff. Other icons like BookmarkCheck, Delete, etc., are kept as they were.
+import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, EyeOff, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" 
 import { motion } from "framer-motion";
 import * as React from "react"; 
 
@@ -30,7 +31,7 @@ import useAddRouteStore from "@/stores/add-route-store"
 import { useBusStore } from "@/stores/bus-store" 
 import { AdminMenuKey } from "@/enums/admin-menu-key";
 import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; 
-import { BusStop } from '@/types/bus-stop'; // Changed from Waypoint
+import { BusStop } from '@/types/bus-stop'; 
 
 // Imports for AddRouteItems
 import { Label } from "@/components/ui/label";
@@ -102,8 +103,11 @@ function HomeItems() {
         busRoutesByID, 
         busRoutesVisibility,
         toggleRouteVisibility,
-        busRouteGroupVisibility,
-        toggleGroupVisibility,
+        // Updated state and actions:
+        sidebarGroupExpansionState, // Renamed from busRouteGroupVisibility
+        mapGroupVisibilityState,    // New state for map visibility
+        toggleSidebarGroupExpansion, // Renamed from toggleGroupVisibility
+        toggleMapGroupVisibility,   // New action
         loading: routesLoading, 
     } = busRouteStore;
 
@@ -137,17 +141,18 @@ function HomeItems() {
 
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden">
+            {/* Bus Routes Section - Grouped */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
-                <SidebarMenuItem>
+                <SidebarMenuItem> 
                     <CollapsibleTrigger asChild>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton> 
                             <Route />
                             <span>Bus Routes</span>
                             <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
                         </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent asChild>
-                        <motion.div
+                        <motion.div 
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
@@ -168,18 +173,32 @@ function HomeItems() {
                                         <Collapsible 
                                             key={`group-${busTypeId}`} 
                                             className="group/collapsible-inner" 
-                                            open={busRouteGroupVisibility[busTypeId] !== undefined ? busRouteGroupVisibility[busTypeId] : true} 
-                                            onOpenChange={() => toggleGroupVisibility(busTypeId)}
+                                            open={sidebarGroupExpansionState[busTypeId] !== undefined ? sidebarGroupExpansionState[busTypeId] : true} 
+                                            onOpenChange={() => toggleSidebarGroupExpansion(busTypeId)} 
                                         >
                                             <SidebarMenuItem>
                                                 <CollapsibleTrigger asChild>
-                                                    <SidebarMenuButton variant="outline" className="font-semibold">
-                                                        <span>{groupData.description}</span>
-                                                        <ChevronDown className="ml-auto transition-transform group-data-[state=closed]/collapsible-inner:-rotate-90" />
+                                                    <SidebarMenuButton variant="outline" className="font-semibold justify-between w-full">
+                                                        <div className="flex items-center"> 
+                                                            <span>{groupData.description}</span>
+                                                            <ChevronDown className="ml-2 transition-transform group-data-[state=closed]/collapsible-inner:-rotate-90 h-4 w-4" />
+                                                        </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="w-7 h-7" // Adjusted size for better click area
+                                                            onClick={(e) => {
+                                                                e.stopPropagation(); 
+                                                                toggleMapGroupVisibility(busTypeId);
+                                                            }}
+                                                            aria-label="Toggle group map visibility"
+                                                        >
+                                                            {mapGroupVisibilityState[busTypeId] ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                                        </Button>
                                                     </SidebarMenuButton>
                                                 </CollapsibleTrigger>
                                                 <CollapsibleContent asChild>
-                                                    <motion.div
+                                                    <motion.div 
                                                         initial={{ height: 0, opacity: 0 }}
                                                         animate={{ height: "auto", opacity: 1 }}
                                                         exit={{ height: 0, opacity: 0 }}
@@ -192,21 +211,30 @@ function HomeItems() {
                                                                     <SidebarMenuSubButton
                                                                         className="cursor-pointer"
                                                                         key={`bus-route-${routeId}`} 
+                                                                        // The button itself doesn't need an onClick if checkbox handles all
+                                                                        // However, if clicking the row should also toggle, this is fine.
                                                                         onClick={() => {
-                                                                            if (busRouteGroupVisibility[busTypeId] !== false) {
+                                                                            if (mapGroupVisibilityState[busTypeId] !== false) {
                                                                                 toggleRouteVisibility(routeId);
                                                                             }
                                                                         }}
+                                                                        // Disable button interaction if group is hidden on map
+                                                                        disabled={mapGroupVisibilityState[busTypeId] === false} 
                                                                     >
                                                                         <Checkbox
-                                                                            checked={busRoutesVisibility[routeId] === true && busRouteGroupVisibility[busTypeId] !== false}
-                                                                            disabled={busRouteGroupVisibility[busTypeId] === false}
+                                                                            checked={busRoutesVisibility[routeId] === true}
+                                                                            disabled={mapGroupVisibilityState[busTypeId] === false} 
+                                                                            onCheckedChange={() => {
+                                                                                // Checkbox click directly calls toggleRouteVisibility
+                                                                                // No need for mapGroupVisibilityState check here as button is disabled
+                                                                                toggleRouteVisibility(routeId);
+                                                                            }}
                                                                             aria-label={`Toggle visibility for Route ${routeId}`}
                                                                         />
                                                                         <span>{`Route ${routeId}`}</span>
                                                                     </SidebarMenuSubButton>
                                                                 ))
-                                                            ) : (
+                                                            ) : ( 
                                                                 <SidebarMenuSubItem>
                                                                     <span className="p-2 text-xs text-gray-500">No routes in this group.</span>
                                                                 </SidebarMenuSubItem>
@@ -224,6 +252,7 @@ function HomeItems() {
                 </SidebarMenuItem>
             </Collapsible>
 
+            {/* Buses Section (remains unchanged) */}
             <Collapsible className="group/collapsible" defaultOpen={true}>
                 <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
@@ -287,10 +316,10 @@ function AddRouteItems() {
     } = addRouteStore;
 
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-    const [currentStop, setCurrentStop] = React.useState<BusStop | null>(null); // Changed type to BusStop
+    const [currentStop, setCurrentStop] = React.useState<BusStop | null>(null); 
     const [stopNameInput, setStopNameInput] = React.useState("");
 
-    const handleEditClick = (stop: BusStop) => { // Changed type to BusStop
+    const handleEditClick = (stop: BusStop) => { 
         setCurrentStop(stop);
         setStopNameInput(stop.name || "");
         setIsAlertOpen(true);
@@ -320,8 +349,6 @@ function AddRouteItems() {
         storeClearVertices();
     };
     
-    // getStopLetter function is removed, as we will use stop.index
-
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden flex flex-col h-full">
             <div className="flex-grow overflow-y-auto pr-1">
@@ -332,19 +359,17 @@ function AddRouteItems() {
                         </span>
                     </SidebarMenuSubItem>
                 ) : (
-                    newRouteBusStops.map((stop) => ( // Iterating BusStop objects
+                    newRouteBusStops.map((stop) => ( 
                         <SidebarMenuSubItem 
-                            key={stop.id || `stop-${stop.index}`} // Use stop.id for stable key
+                            key={stop.id || `stop-${stop.index}`} 
                             className="mb-2 p-2 border rounded-md shadow-sm hover:shadow-md transition-shadow"
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex flex-col text-sm">
                                     <span className="font-semibold">
-                                        {/* Use stop.index directly for numbering */}
                                         {stop.index}: {stop.name || `Unnamed Stop`} 
                                     </span>
                                     <span className="text-xs text-gray-500">
-                                        {/* Access location properties correctly */}
                                         Lat: {stop.location.latitude.toFixed(3)}, Lng: {stop.location.longitude.toFixed(3)}
                                     </span>
                                 </div>
@@ -392,7 +417,6 @@ function AddRouteItems() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Edit Bus Stop Name</AlertDialogTitle>
                             <AlertDialogDescription>
-                                {/* Use stop.index for display */}
                                 Stop: {currentStop.index} 
                                 ({currentStop.location.latitude.toFixed(3)}, {currentStop.location.longitude.toFixed(3)})
                                 <br/> Current Name: {currentStop.name || "Not set"}
