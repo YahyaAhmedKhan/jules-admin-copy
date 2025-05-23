@@ -2,13 +2,13 @@ import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model';
 import { create } from 'zustand';
 import { Location } from '@/types/location';
 import { BusStop } from '@/types/bus-stop';
-import { BusRoutesService } from '@/services/busRoutesService'; 
+import { BusRoutesService } from '@/app/services/busRoutesService';
 
 const busRoutesService = new BusRoutesService();
 
 const ROUTE_COLORS = [
-    '#FF5733', '#33A8FF', '#4CAF50', '#9C27B0', '#FFC107', 
-    '#E91E63', '#3F51B5', '#00BCD4', '#FF9800', '#8BC34A', 
+    '#FF5733', '#33A8FF', '#4CAF50', '#9C27B0', '#FFC107',
+    '#E91E63', '#3F51B5', '#00BCD4', '#FF9800', '#8BC34A',
     '#673AB7', '#2196F3'
 ];
 
@@ -16,30 +16,30 @@ interface BusRoutesStore {
     busRoutes: BusRouteEdgeModel[];
     busRoutesByID: { [key: number]: BusRouteEdgeModel[] };
     clearBusRoutesByIds: () => void;
-    busStopsByID: { [key: number]: BusStop[] }; 
+    busStopsByID: { [key: number]: BusStop[] };
     clearBusStopsByIds: () => void;
     busRoutesVisibility: { [routeId: number]: boolean };
-    sidebarGroupExpansionState: { [busTypeId: number]: boolean }; 
-    mapGroupVisibilityState: { [busTypeId: number]: boolean };    
-    busTypeColors: { [busTypeId: number]: string }; 
+    sidebarGroupExpansionState: { [busTypeId: number]: boolean };
+    mapGroupVisibilityState: { [busTypeId: number]: boolean };
+    busTypeColors: { [busTypeId: number]: string };
     setBusRoutesVisibility: (routeId: number, visibility: boolean) => void;
     toggleSidebarGroupExpansion: (busTypeId: number) => void; // Renamed
     toggleMapGroupVisibility: (busTypeId: number) => void;    // Added
     loading: boolean;
     error: string | null;
-    routeColors: string[]; 
+    routeColors: string[];
     fetchRoutes: () => Promise<void>;
-    getBusRoutes: () => any[]; 
-    getRouteColor: (busTypeId: number) => string; 
-    toggleRouteVisibility: (routeId: number) => void; 
+    getBusRoutes: () => any[];
+    getRouteColor: (busTypeId: number) => string;
+    toggleRouteVisibility: (routeId: number) => void;
 }
 
 const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
     busRoutes: [],
     busRoutesVisibility: {},
-    sidebarGroupExpansionState: {}, 
-    mapGroupVisibilityState: {},    
-    busTypeColors: {}, 
+    sidebarGroupExpansionState: {},
+    mapGroupVisibilityState: {},
+    busTypeColors: {},
     loading: true,
     error: null,
     busRoutesByID: {},
@@ -50,14 +50,14 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
     clearBusStopsByIds: () => {
         set({ busStopsByID: {} });
     },
-    routeColors: ROUTE_COLORS, 
-    
+    routeColors: ROUTE_COLORS,
+
     setBusRoutesVisibility: (routeId: number, visibility: boolean) => {
-        set(state => ({ 
-            busRoutesVisibility: { 
-                ...state.busRoutesVisibility, 
-                [routeId]: visibility 
-            } 
+        set(state => ({
+            busRoutesVisibility: {
+                ...state.busRoutesVisibility,
+                [routeId]: visibility
+            }
         }));
     },
 
@@ -80,17 +80,17 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
     fetchRoutes: async () => {
         set({ loading: true, error: null });
         try {
-            const fetchedRoutes = await busRoutesService.getAllBusRoutes(); 
-            
+            const fetchedRoutes = await busRoutesService.getAllBusRoutes();
+
             set({
-                busRoutes: fetchedRoutes, 
+                busRoutes: fetchedRoutes,
                 busRoutesVisibility: Object.fromEntries(fetchedRoutes.map((route: BusRouteEdgeModel) => [route.route_id, true])),
                 loading: false
             });
 
             const groupedById: { [key: number]: BusRouteEdgeModel[] } = {};
             fetchedRoutes.forEach((route: BusRouteEdgeModel) => {
-                const id = route.route_id; 
+                const id = route.route_id;
                 if (!groupedById[id]) {
                     groupedById[id] = [];
                 }
@@ -108,7 +108,7 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
             });
 
             const newBusTypeColors: { [busTypeId: number]: string } = {};
-            const availableColors = get().routeColors; 
+            const availableColors = get().routeColors;
             let colorIndex = 0;
             uniqueBusTypes.forEach((description, busTypeId) => {
                 newBusTypeColors[busTypeId] = availableColors[colorIndex % availableColors.length];
@@ -121,13 +121,13 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
 
             fetchedRoutes.forEach((route: BusRouteEdgeModel) => {
                 if (typeof route.bus_type_id !== 'undefined') {
-                    groupExpansionInit[route.bus_type_id] = true; 
-                    mapVisibilityInit[route.bus_type_id] = true;  
+                    groupExpansionInit[route.bus_type_id] = true;
+                    mapVisibilityInit[route.bus_type_id] = true;
                 }
             });
-            set({ 
+            set({
                 sidebarGroupExpansionState: groupExpansionInit,
-                mapGroupVisibilityState: mapVisibilityInit 
+                mapGroupVisibilityState: mapVisibilityInit
             });
 
 
@@ -147,11 +147,11 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
                 stopsByIdProcessed[currentRouteId] = Array.from(locSet).map((locStr, index) => {
                     const loc: Location = JSON.parse(locStr);
                     const busStop: BusStop = {
-                        id: `stop-${currentRouteId}-${index + 1}`, 
+                        id: `stop-${currentRouteId}-${index + 1}`,
                         location: loc,
-                        index: index + 1, 
-                        routeId: currentRouteId, 
-                        name: `Stop ${index + 1} for Route ${currentRouteId}` 
+                        index: index + 1,
+                        routeId: currentRouteId,
+                        name: `Stop ${index + 1} for Route ${currentRouteId}`
                     };
                     return busStop;
                 });
@@ -164,20 +164,20 @@ const useBusRouteStore = create<BusRoutesStore>((set, get) => ({
         }
     },
 
-    getBusRoutes: () => { 
+    getBusRoutes: () => {
         if (get().busRoutes.length === 0 && !get().loading) {
-            get().fetchRoutes(); 
+            get().fetchRoutes();
         }
         return get().busRoutes;
     },
 
-    getRouteColor: (busTypeId: number) => { 
+    getRouteColor: (busTypeId: number) => {
         const colorsMap = get().busTypeColors;
-        const defaultColor = '#CCCCCC'; 
+        const defaultColor = '#CCCCCC';
         return colorsMap[busTypeId] || defaultColor;
     },
 
-    toggleRouteVisibility: (routeId: number) => { 
+    toggleRouteVisibility: (routeId: number) => {
         set(state => ({
             busRoutesVisibility: {
                 ...state.busRoutesVisibility,
