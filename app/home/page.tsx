@@ -22,20 +22,21 @@ import { BusRoutesTable } from "@/components/bus-routes-table";
 import { TablesView } from "@/components/tables-view";
 
 export default function Home() {
-  const addRouteStore = useAddRouteStore()
-  const busRoutesStore = useBusRouteStore()
-  const busTypesStore = useBusTypeStore()
-  const sideBarStore = useSidebarStore()
+  const addRouteStore = useAddRouteStore();
+  const busRoutesStore = useBusRouteStore();
+  const busTypesStore = useBusTypeStore();
+  const sideBarStore = useSidebarStore();
 
-  const { setActiveMenu, activeMenu } = sideBarStore
-  const { intermediateRoutes, clearAll, vertices, newRouteTypeSelectionId, setNewRouteTypeSelection, clearNewRouteTypeSelection } = addRouteStore
-  const { fetchRoutes } = busRoutesStore
-  const { getBusRouteTypes, busRouteTypes } = busTypesStore
-  const { toast } = useToast()
+  const { setActiveMenu, activeMenu } = sideBarStore;
+  // Destructure clearAll from addRouteStore here, as it's used in handleAddRoute
+  const { intermediateRoutes, clearAll, setNewRouteTypeSelection, clearNewRouteTypeSelection } = addRouteStore; 
+  const { fetchRoutes } = busRoutesStore;
+  const { getBusRouteTypes, busRouteTypes } = busTypesStore;
+  const { toast } = useToast();
 
   const [isLoading, setIsLoading] = useState(false);
 
-  getBusRouteTypes()
+  getBusRouteTypes();
 
 
   const Icons = {
@@ -45,35 +46,50 @@ export default function Home() {
 
   const handleAddRoute = async () => {
     try {
-      // throw new Error("Test Error")
+      // Retrieve newRouteBusStops, vertices, and newRouteTypeSelectionId from the store
+      const { newRouteBusStops, vertices: currentVertices, newRouteTypeSelectionId: currentNewRouteTypeSelectionId } = useAddRouteStore.getState();
 
-
+      // Log the collected route information (including names)
+      console.log("Collected Bus Stops for New Route:", JSON.stringify(newRouteBusStops, null, 2));
+      
+      // Existing logic to prepare data for API call
       const routeService = new RouteService();
-
-      const weights = intermediateRoutes.map((data) => data.weight / 10);
+      
+      // The API call currently uses 'vertices'. 
+      // Ensure 'currentVertices' (from addRouteStore.vertices) is what the API expects.
+      const weights = intermediateRoutes.map((data) => data.weight / 10); 
       const geometry = intermediateRoutes.map((data) => lineStringToWKT(data.geometry));
 
-      if (!newRouteTypeSelectionId) {
+      if (!currentNewRouteTypeSelectionId) { // Changed to use variable from store
         throw new Error("Bus Route Type not selected");
       }
 
+      // Log what's being sent to the API for easier debugging
+      console.log("Data being sent to addNewBusRoute API:");
+      console.log("Vertices:", JSON.stringify(currentVertices, null, 2));
+      console.log("Weights:", JSON.stringify(weights, null, 2));
+      console.log("Geometry (WKT):", JSON.stringify(geometry, null, 2));
+      console.log("Route Type ID:", currentNewRouteTypeSelectionId);
+
       const response = await routeService.addNewBusRoute(
-        vertices,
+        currentVertices, // Changed to use variable from store
         weights,
         geometry,
-        "Test Route for Bilal",
-        newRouteTypeSelectionId
+        "Test Route for Bilal", // This description might need to be dynamic in the future
+        currentNewRouteTypeSelectionId // Changed to use variable from store
       );
 
-      console.log(response);
+      console.log("API Response:", response);
       console.log("Route added successfully");
-      fetchRoutes()
-      clearAll();
-      setActiveMenu("home");
+      
+      // Existing cleanup and UI updates
+      fetchRoutes(); 
+      clearAll();    // This is from addRouteStore, already destructured above
+      setActiveMenu("home"); 
 
       toast({
         title: "Route Added Successfully!",
-        description: `New route belonging to ${newRouteTypeSelectionId} has been registered.`,
+        description: `New route belonging to type ${currentNewRouteTypeSelectionId} has been registered.`,
       });
 
     } catch (error) {
@@ -117,7 +133,7 @@ export default function Home() {
               </AlertDialogHeader>
               <Select
                 onValueChange={(value) => {
-                  setNewRouteTypeSelection(Number(value));
+                  setNewRouteTypeSelection(Number(value)); // from addRouteStore
                   console.log('value', value);
                 }}
               >
@@ -134,17 +150,17 @@ export default function Home() {
               <AlertDialogFooter>
                 <AlertDialogCancel asChild>
                   <Button variant="outline" onClick={() => {
-                    clearNewRouteTypeSelection();
+                    clearNewRouteTypeSelection(); // from addRouteStore
                   }}>
                     Cancel
                   </Button>
                 </AlertDialogCancel>
-                {/* <AlertDialogAction onClick={handleAddRoute} */}
                 <AlertDialogAction asChild>
                   <Button
                     onClick={
                       async () => {
-                        if (!newRouteTypeSelectionId) {
+                        // Get newRouteTypeSelectionId directly from store for the check
+                        if (!useAddRouteStore.getState().newRouteTypeSelectionId) { 
                           toast({
                             title: "Select a Bus Route Type!",
                             description: `You must select the Bus Route Type the new route should belong to.`,
@@ -153,7 +169,8 @@ export default function Home() {
                         }
 
                         setIsLoading(true);
-                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        // Consider if a shorter delay is acceptable for UX, or keep as is.
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Shortened delay for testing
                         await handleAddRoute();
                         setIsLoading(false);
 
@@ -169,7 +186,6 @@ export default function Home() {
 
         </div>}
 
-      {/* {CoreMap(busRoutes, getRouteColor, busRoutesVisibility)} */}
     </div>
   </div>;
   return (

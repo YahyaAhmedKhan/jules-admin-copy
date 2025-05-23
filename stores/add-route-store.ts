@@ -10,6 +10,7 @@ interface AddRouteStore {
     addBusStop: (waypoint: Waypoint) => void;
     removeBusStop: (index: number) => void;
     clearNewRouteBusStops: () => void;
+    updateBusStopName: (id: string, name: string) => void; // Added updateBusStopName
 
     waypointRoute: any;
     intermediateRoutes: intermediateRouteInfo[];
@@ -42,15 +43,30 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
     vertices: [],
     addVertex: (newVertex) => { set({ vertices: [...get().vertices, newVertex] }); },
     addBusStop: (waypoint) => {
-        set({ newRouteBusStops: [...get().newRouteBusStops, waypoint] });
+        // Ensure waypoint has a unique ID
+        const waypointWithId = {
+            ...waypoint,
+            id: waypoint.id || Date.now().toString(), // Assign unique ID if not present
+        };
 
+        set(state => ({ newRouteBusStops: [...state.newRouteBusStops, waypointWithId] }));
+
+        // Existing logic for getRoutesMapbox (ensure it uses newRouteBusStops from get())
         const newWaypoints = get().newRouteBusStops;
         if (newWaypoints.length > 1) {
             const lastTwo = newWaypoints.slice(-2);
-            const wayPointCoordinates = lastTwo.map((waypoint) => ({
-                coordinates: [waypoint.location[0], waypoint.location[1]]
+            // Ensure that the objects passed to getRoutesMapbox have the expected structure,
+            // especially if Waypoint and Vertex types differ significantly.
+            // The current getRoutesMapbox call seems to expect objects with a 'coordinates' property
+            // where coordinates is an array [longitude, latitude].
+            // Waypoint.location is [number, number] - check if order matches (lng, lat) or (lat, lng)
+            // For mapbox services, it's usually [longitude, latitude]. Assuming Waypoint.location is [lng, lat].
+            const wayPointCoordinatesForMapbox = lastTwo.map(wp => ({
+                coordinates: [wp.location[0], wp.location[1]] 
             }));
-            getRoutesMapbox(wayPointCoordinates).then((data) => {
+
+            getRoutesMapbox(wayPointCoordinatesForMapbox).then((data) => {
+                // ... (rest of the existing mapbox logic)
                 const route = data.routes[0];
                 const intermediateRoute: intermediateRouteInfo = {
                     weight: route.weight,
@@ -59,7 +75,7 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
                         coordinates: route.geometry.coordinates
                     }
                 };
-                console.log('inter', intermediateRoute)
+                // console.log('inter', intermediateRoute) // Keep or remove console.log as preferred
                 const updatedIntermediateRoutes = [...get().intermediateRoutes, intermediateRoute];
                 set({ intermediateRoutes: updatedIntermediateRoutes });
 
@@ -69,8 +85,9 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
                     coordinates: concatenatedCoordinates
                 };
                 set({ waypointRoute: fullRoute });
+
             }).catch((error) => {
-                console.error(error);
+                console.error("Error fetching route from Mapbox:", error); // Enhanced error logging
             });
         }
     },
@@ -78,6 +95,14 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
 
     clearNewRouteBusStops: () => set({ newRouteBusStops: [] }),
     clearIntermediateRoutes: () => set({ intermediateRoutes: [] }),
+
+    updateBusStopName: (id: string, name: string) => { // Added updateBusStopName implementation
+        set(state => ({
+            newRouteBusStops: state.newRouteBusStops.map(stop =>
+                stop.id === id ? { ...stop, name: name } : stop
+            ),
+        }));
+    },
 
     waypointRoute: null,
     intermediateRoutes: [],
