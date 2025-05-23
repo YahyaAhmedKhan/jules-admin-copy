@@ -1,8 +1,8 @@
 "use client"
 
-import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" // Added Trash2
+import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" 
 import { motion } from "framer-motion";
-import * as React from "react"; // Ensure React is imported
+import * as React from "react"; 
 
 import {
     Sidebar,
@@ -30,7 +30,7 @@ import useAddRouteStore from "@/stores/add-route-store"
 import { useBusStore } from "@/stores/bus-store" 
 import { AdminMenuKey } from "@/enums/admin-menu-key";
 import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model'; 
-import Waypoint from '@/types/waypoint'; 
+import { BusStop } from '@/types/bus-stop'; // Changed from Waypoint
 
 // Imports for AddRouteItems
 import { Label } from "@/components/ui/label";
@@ -278,19 +278,19 @@ function AddRouteItems() {
     const addRouteStore = useAddRouteStore();
     const { 
         newRouteBusStops, 
-        clearNewRouteBusStops: storeClearNewRouteBusStops, // Renamed to avoid conflict
+        clearNewRouteBusStops: storeClearNewRouteBusStops,
         clearWaypointRoute: storeClearWaypointRoute,
         clearIntermediateRoutes: storeClearIntermediateRoutes,
         clearVertices: storeClearVertices,
         updateBusStopName,
-        deleteBusStop // Added from store
+        deleteBusStop
     } = addRouteStore;
 
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-    const [currentStop, setCurrentStop] = React.useState<Waypoint | null>(null);
+    const [currentStop, setCurrentStop] = React.useState<BusStop | null>(null); // Changed type to BusStop
     const [stopNameInput, setStopNameInput] = React.useState("");
 
-    const handleEditClick = (stop: Waypoint) => {
+    const handleEditClick = (stop: BusStop) => { // Changed type to BusStop
         setCurrentStop(stop);
         setStopNameInput(stop.name || "");
         setIsAlertOpen(true);
@@ -307,7 +307,6 @@ function AddRouteItems() {
 
     const handleDeleteClick = async (stopId: string | undefined) => {
         if (stopId) {
-            // Consider adding a confirmation dialog here if desired
             await deleteBusStop(stopId);
         } else {
             console.warn("Attempted to delete a stop without an ID.");
@@ -315,18 +314,17 @@ function AddRouteItems() {
     };
 
     const handleClearAllWaypoints = () => {
-        // Confirmation dialog could be useful here too
         storeClearNewRouteBusStops();
         storeClearWaypointRoute();
         storeClearIntermediateRoutes();
         storeClearVertices();
     };
     
-    const getStopLetter = (index: number) => String.fromCharCode(65 + index);
+    // getStopLetter function is removed, as we will use stop.index
 
     return (
         <SidebarMenuSub className="peer-data-[active=false]/menu-button:hidden flex flex-col h-full">
-            <div className="flex-grow overflow-y-auto pr-1"> {/* Added for scrolling long lists */}
+            <div className="flex-grow overflow-y-auto pr-1">
                 {newRouteBusStops.length === 0 ? (
                     <SidebarMenuSubItem>
                         <span className="p-2 text-xs text-gray-400 italic">
@@ -334,25 +332,27 @@ function AddRouteItems() {
                         </span>
                     </SidebarMenuSubItem>
                 ) : (
-                    newRouteBusStops.map((stop, index) => (
+                    newRouteBusStops.map((stop) => ( // Iterating BusStop objects
                         <SidebarMenuSubItem 
-                            key={stop.id || `stop-${index}`} // Use stop.id for stable key
-                            className="mb-2 p-2 border rounded-md shadow-sm hover:shadow-md transition-shadow" // Using shadcn-like styling
+                            key={stop.id || `stop-${stop.index}`} // Use stop.id for stable key
+                            className="mb-2 p-2 border rounded-md shadow-sm hover:shadow-md transition-shadow"
                         >
                             <div className="flex items-center justify-between">
                                 <div className="flex flex-col text-sm">
                                     <span className="font-semibold">
-                                        {getStopLetter(index)}: {stop.name || `Unnamed Stop`}
+                                        {/* Use stop.index directly for numbering */}
+                                        {stop.index}: {stop.name || `Unnamed Stop`} 
                                     </span>
                                     <span className="text-xs text-gray-500">
-                                        Lat: {stop.location[1].toFixed(3)}, Lng: {stop.location[0].toFixed(3)}
+                                        {/* Access location properties correctly */}
+                                        Lat: {stop.location.latitude.toFixed(3)}, Lng: {stop.location.longitude.toFixed(3)}
                                     </span>
                                 </div>
                                 <div className="flex items-center space-x-1">
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        className="w-7 h-7" // Made icons always visible
+                                        className="w-7 h-7"
                                         onClick={() => handleEditClick(stop)}
                                         aria-label="Edit stop name"
                                     >
@@ -361,11 +361,11 @@ function AddRouteItems() {
                                     <Button 
                                         variant="ghost" 
                                         size="icon" 
-                                        className="w-7 h-7 text-red-500 hover:text-red-700" // Made icons always visible
+                                        className="w-7 h-7 text-red-500 hover:text-red-700"
                                         onClick={() => handleDeleteClick(stop.id)}
                                         aria-label="Delete stop"
                                     >
-                                        <Trash2 className="w-4 h-4" /> {/* Using Trash2 for a potentially different delete icon */}
+                                        <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </div>
                             </div>
@@ -374,7 +374,6 @@ function AddRouteItems() {
                 )}
             </div>
 
-            {/* Clear Waypoints Button - Pushed to bottom */}
             <div className="mt-auto pt-2 border-t border-border">
                 <SidebarMenuSubItem>
                     <SidebarMenuSubButton 
@@ -387,18 +386,19 @@ function AddRouteItems() {
                 </SidebarMenuSubItem>
             </div>
 
-            {/* AlertDialog for editing stop name (remains the same) */}
             {currentStop && (
                 <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Edit Bus Stop Name</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Stop: {getStopLetter(newRouteBusStops.findIndex(s => s.id === currentStop.id))} ({currentStop.location[1].toFixed(3)}, {currentStop.location[0].toFixed(3)})
+                                {/* Use stop.index for display */}
+                                Stop: {currentStop.index} 
+                                ({currentStop.location.latitude.toFixed(3)}, {currentStop.location.longitude.toFixed(3)})
                                 <br/> Current Name: {currentStop.name || "Not set"}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <div className="py-2"> {/* Reduced py */}
+                        <div className="py-2">
                             <Label htmlFor="stopName" className="text-sm">New Stop Name</Label>
                             <Input
                                 id="stopName"

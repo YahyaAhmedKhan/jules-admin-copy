@@ -13,16 +13,17 @@ import { getMapCoordinates, getMapInstance, getMapZoom, setMapInstance } from "@
 
 
 export default function CoreMapView() {
-    const { busRoutesVisibility, busRoutes, loading, error, busRoutesByID, fetchRoutes, getBusRoutes: getRoutes, getRouteColor, busStopsByID } = useBusRouteStore(); // Access Zustand store with getRouteColor
-    const { waypointRoute, newRouteBusStops: newWaypoints, vertices, addVertex, addBusStop: addWaypoint, addWaypointRoute, intermediateRoutes } = useAddRouteStore();
+    const { busRoutesVisibility, busRoutes, loading, error, busRoutesByID, fetchRoutes, getBusRoutes: getRoutes, getRouteColor, busStopsByID } = useBusRouteStore();
+    // Updated destructuring: newWaypoints -> newRouteBusStops, addWaypoint -> addBusStop
+    const { waypointRoute, newRouteBusStops, vertices, addVertex, addBusStop, addWaypointRoute, intermediateRoutes } = useAddRouteStore();
     const { fetchBuses, buses, getBuses, busVisibility } = useBusStore();
     const { activeMenu, setActiveMenu: setActive } = useSidebarStore();
 
     const osmGraphService: OSMGraphService = new OSMGraphService()
 
     useEffect(() => {
-        fetchRoutes(); // Fetch routes when component mounts
-        fetchBuses(); // Fetch buses when component mounts
+        fetchRoutes(); 
+        fetchBuses(); 
     }, [fetchRoutes, fetchBuses]);
 
     async function onAddRouteClick(e: MapMouseEvent) {
@@ -33,7 +34,8 @@ export default function CoreMapView() {
         const nearestVertex: Vertex = await osmGraphService.getNearestNode(lat, lng)
         console.log('response', nearestVertex)
 
-        addWaypoint({ location: [nearestVertex.longitude, nearestVertex.latitude] });
+        // Updated call to use addBusStop with coordinate array
+        addBusStop([nearestVertex.longitude, nearestVertex.latitude]); 
         addVertex(nearestVertex);
 
         console.log('steps in bw', intermediateRoutes)
@@ -45,7 +47,7 @@ export default function CoreMapView() {
     return <Map
         onLoad={(e) => {
             const map = e.target;
-            setMapInstance(map); // set globally
+            setMapInstance(map); 
             console.log('set global map', getMapInstance())
         }}
 
@@ -60,9 +62,6 @@ export default function CoreMapView() {
         initialViewState={{
             ...getMapCoordinates(),
             ...getMapZoom(),
-            // latitude: 24.8004,
-            // longitude: 67.0599,
-            // zoom: 13,
         }}
         style={{ width: '100%', height: '100%' }}
         mapStyle="mapbox://styles/mapbox/streets-v9"
@@ -141,11 +140,13 @@ export default function CoreMapView() {
             })
         }
 
+        {/* Updated Marker Rendering Loop */}
         {
-            newWaypoints?.length > 0 && activeMenu.addRoute &&
-            newWaypoints.map((waypoint, index) => {
+            newRouteBusStops?.length > 0 && activeMenu.addRoute &&
+            newRouteBusStops.map((busStop) => { // Changed from waypoint, index removed from .map()
                 return (
-                    newWaypointMarker(waypoint, index + 1) // Pass index + 1 as orderNumber
+                    // Pass the busStop object and its 'index' property
+                    newWaypointMarker(busStop, busStop.index) 
                 );
             })
         }
@@ -181,8 +182,7 @@ export default function CoreMapView() {
         {
             buses?.length > 0 &&
             buses.map((bus, index) => {
-                if (!busVisibility![index]) return null; // Skip hidden buses
-                // console.log('bus', bus);
+                if (!busVisibility![index]) return null; 
                 return busMarker(bus);
             })
         }

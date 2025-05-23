@@ -46,21 +46,24 @@ export default function Home() {
 
   const handleAddRoute = async () => {
     try {
-      // Retrieve newRouteBusStops, vertices, and newRouteTypeSelectionId from the store
-      const { newRouteBusStops, vertices: currentVertices, newRouteTypeSelectionId: currentNewRouteTypeSelectionId } = useAddRouteStore.getState();
+      // Retrieve all necessary state directly from the store for this specific transaction
+      const { 
+        newRouteBusStops, // This is BusStop[]
+        vertices: currentVertices, 
+        newRouteTypeSelectionId: currentNewRouteTypeSelectionId,
+        intermediateRoutes: currentIntermediateRoutes // Sourced from store for API call
+      } = useAddRouteStore.getState();
 
-      // Log the collected route information (including names)
-      console.log("Collected Bus Stops for New Route:", JSON.stringify(newRouteBusStops, null, 2));
+      // Updated console.log message
+      console.log("Collected Bus Stops for New Route (BusStop format):", JSON.stringify(newRouteBusStops, null, 2));
       
-      // Existing logic to prepare data for API call
       const routeService = new RouteService();
       
-      // The API call currently uses 'vertices'. 
-      // Ensure 'currentVertices' (from addRouteStore.vertices) is what the API expects.
-      const weights = intermediateRoutes.map((data) => data.weight / 10); 
-      const geometry = intermediateRoutes.map((data) => lineStringToWKT(data.geometry));
+      // Use currentIntermediateRoutes from the store for weights and geometry
+      const weights = currentIntermediateRoutes.map((data) => data.weight / 10); 
+      const geometry = currentIntermediateRoutes.map((data) => lineStringToWKT(data.geometry));
 
-      if (!currentNewRouteTypeSelectionId) { // Changed to use variable from store
+      if (!currentNewRouteTypeSelectionId) { 
         throw new Error("Bus Route Type not selected");
       }
 
