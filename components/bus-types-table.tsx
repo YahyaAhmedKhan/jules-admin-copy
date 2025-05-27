@@ -30,7 +30,8 @@ export function BusTypesTable() {
         busRouteTypes,
         getBusRouteTypes,
         fetchBusRouteTypes,
-        isLoading
+        loading,
+        error,
 
     } = useBusTypeStore();
 
@@ -149,40 +150,51 @@ export function BusTypesTable() {
                 </div>
             </div>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-12"></TableHead>
-                            <TableHead className="w-[100px]">ID</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead className="w-[120px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {currentItems.length > 0 ? (
-                            currentItems.map((type, index) => (
-                                <TableRow key={type.id}>
-                                    <TableCell className="text-gray-500 flex justify-center">
-                                        <span>{startIndex + index + 1}.</span>
-                                    </TableCell>
-                                    <TableCell className="font-medium">{type.id}</TableCell>
-                                    <TableCell className="font-semibold">{type.description}</TableCell>
-                                    <TableCell className="flex justify-end gap-2">
-                                        <DeleteButton busTypeId={type.id} />
-                                    </TableCell>
+            {error ?
+                <div className="p-4 text-red-500">Error loading Bus Types: {error}</div> :
+                loading ? (
+                    <div className="flex items-center justify-center w-full h-full">
+                        <div className="flex flex-col items-center gap-4 text-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Loading Bus Types...</p>
+                        </div>
+                    </div>
+                ) :
+
+                    (<div className="rounded-md border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-12"></TableHead>
+                                    <TableHead className="w-[100px]">ID</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead className="w-[120px]"></TableHead>
                                 </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-center py-6">
-                                    <span className="font-bold">No bus types found matching the filter</span>
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
+                            </TableHeader>
+                            <TableBody>
+                                {currentItems.length > 0 ? (
+                                    currentItems.map((type, index) => (
+                                        <TableRow key={type.id}>
+                                            <TableCell className="text-gray-500 flex justify-center">
+                                                <span>{startIndex + index + 1}.</span>
+                                            </TableCell>
+                                            <TableCell className="font-medium">{type.id}</TableCell>
+                                            <TableCell className="font-semibold">{type.description}</TableCell>
+                                            <TableCell className="flex justify-end gap-2">
+                                                <DeleteButton busTypeId={type.id} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center py-6">
+                                            <span className="font-bold">No bus types found matching the filter</span>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>)}
 
 
         </div>

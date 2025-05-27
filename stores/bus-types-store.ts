@@ -4,7 +4,8 @@ import { create } from "zustand";
 
 interface BusTypeStore {
     busRouteTypes: BusRouteTypeModel[] | null;
-    isLoading: boolean;
+    loading: boolean;
+    error: string | null;
     clearBusRouteTypes: () => void;
     getBusRouteTypes: () => Promise<BusRouteTypeModel[] | null>;
     fetchBusRouteTypes: () => Promise<void>;
@@ -13,11 +14,12 @@ interface BusTypeStore {
 
 export const useBusTypeStore = create<BusTypeStore>((set, get) => ({
     busRouteTypes: null,
-    isLoading: false,
+    error: null,
+    loading: false,
     clearBusRouteTypes: () => set({ busRouteTypes: [] }),
     fetchBusRouteTypes: async () => {
-        if (get().isLoading) return;
-        set({ isLoading: true });
+        if (get().loading) return;
+        set({ loading: true });
         try {
             const busTypesService = new BusTypesService();
             const data = await busTypesService.getAllBusTypes();
@@ -29,12 +31,12 @@ export const useBusTypeStore = create<BusTypeStore>((set, get) => ({
         } catch (error) {
             console.error('Error fetching bus route types:', error);
         } finally {
-            set({ isLoading: false });
+            // set({ loading: false });
         }
     },
 
     getBusRouteTypes: async () => {
-        if (get().busRouteTypes === null && !get().isLoading) {
+        if (get().busRouteTypes === null && !get().loading) {
 
             await get().fetchBusRouteTypes(); // Fetch only if routes are empty and not already loading
         }
