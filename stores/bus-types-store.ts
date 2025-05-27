@@ -31,7 +31,7 @@ export const useBusTypeStore = create<BusTypeStore>((set, get) => ({
         } catch (error) {
             console.error('Error fetching bus route types:', error);
         } finally {
-            // set({ loading: false });
+            set({ loading: false });
         }
     },
 
