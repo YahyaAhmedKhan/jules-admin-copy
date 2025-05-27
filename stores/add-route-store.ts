@@ -1,4 +1,4 @@
-import { getRoutesMapbox } from '@/app/services/mapbox-service';
+import { getRoutesMapbox, MapboxWaypoint } from '@/app/services/mapbox-service';
 import { BusRouteTypeModel } from '@/types/bus-route-type';
 import { Vertex } from '@/types/vertex';
 import { BusStop } from '@/types/bus-stop'; // Changed from Waypoint
@@ -9,7 +9,7 @@ import { create } from 'zustand';
 interface AddRouteStore {
     newRouteBusStops: BusStop[]; // Changed from Waypoint[]
     addBusStop: (locationCoords: [number, number]) => void; // Changed signature
-    deleteBusStop: (stopId: string) => Promise<void>; 
+    deleteBusStop: (stopId: string) => Promise<void>;
     clearNewRouteBusStops: () => void;
     updateBusStopName: (id: string, name: string) => void;
 
@@ -41,7 +41,7 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
     newRouteBusStops: [], // Initial state type is BusStop[]
     vertices: [],
     addVertex: (newVertex) => { set({ vertices: [...get().vertices, newVertex] }); },
-    
+
     addBusStop: (locationCoords: [number, number]) => {
         const newStop: BusStop = {
             id: Date.now().toString(), // Simple unique ID
@@ -59,7 +59,7 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
         const currentStops = get().newRouteBusStops;
         if (currentStops.length > 1) {
             const lastTwoStops = currentStops.slice(-2);
-            const wayPointCoordinatesForMapbox = lastTwoStops.map(stop => ({
+            const wayPointCoordinatesForMapbox: MapboxWaypoint[] = lastTwoStops.map(stop => ({
                 coordinates: [stop.location.longitude, stop.location.latitude]
             }));
 
@@ -105,30 +105,30 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
 
         // Filter out the stop and its corresponding vertex
         let updatedBusStops = currentStops.filter(stop => stop.id !== stopId);
-        
+
         // Re-assign indices to be contiguous
         updatedBusStops = updatedBusStops.map((stop, arrayIndex) => ({
             ...stop,
             index: arrayIndex + 1, // Update index to be 1-based
         }));
-        
+
         const updatedVertices = get().vertices.filter((vertex, index) => index !== stopIndexInArray); // Assuming vertex correspondence by array index
 
         set({
             newRouteBusStops: updatedBusStops,
             vertices: updatedVertices,
-            intermediateRoutes: [], 
-            waypointRoute: null,   
+            intermediateRoutes: [],
+            waypointRoute: null,
         });
 
         if (updatedBusStops.length > 1) {
             const newIntermediateRoutes: intermediateRouteInfo[] = [];
             for (let i = 0; i < updatedBusStops.length - 1; i++) {
                 const pair = [updatedBusStops[i], updatedBusStops[i + 1]];
-                const wayPointCoordinatesForMapbox = pair.map(stop => ({
+                const wayPointCoordinatesForMapbox: MapboxWaypoint[] = pair.map(stop => ({
                     coordinates: [stop.location.longitude, stop.location.latitude]
                 }));
-                
+
                 try {
                     const data = await getRoutesMapbox(wayPointCoordinatesForMapbox);
                     if (data && data.routes && data.routes.length > 0) {
@@ -190,7 +190,7 @@ const useAddRouteStore = create<AddRouteStore>((set, get) => ({
         newRouteBusStops: [], // Consistent with new BusStop[] type
         waypointRoute: null,
         intermediateRoutes: [],
-        vertices: [], 
+        vertices: [],
         editState: 'idle',
         newRouteTypeSelectionId: null
     }),

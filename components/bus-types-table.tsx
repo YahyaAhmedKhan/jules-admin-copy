@@ -1,24 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
     TableHead,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Button } from "./ui/button";
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, Trash, X } from "lucide-react";
+import { Check, Loader2, RefreshCw, Search, Trash, X } from "lucide-react";
 import { AlertDialog, AlertDialogHeader, AlertDialogTrigger, AlertDialogContent, AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription } from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -69,7 +59,7 @@ export function BusTypesTable() {
     ) ?? [];
 
     const totalItems = filteredBusTypes.length;
-    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    // const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
     const currentItems = filteredBusTypes.slice(startIndex, endIndex);
@@ -229,14 +219,13 @@ function DeleteButton({ busTypeId }: { busTypeId: number }) {
                         <Button
                             variant="default"
                             onClick={async () => {
-                                const loadingToast = toast({
+                                toast({
                                     title: "Deleting...",
                                     action: <Loader2 className="w-6 h-6 animate-spin" />,
                                     description: "Please wait while the bus type is being deleted.",
                                     variant: "default",
                                     duration: Infinity,
-                                });
-
+                                })
                                 const busTypesService = new BusTypesService();
                                 try {
                                     await busTypesService.deleteBusType(busTypeId);

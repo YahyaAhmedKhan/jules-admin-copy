@@ -18,7 +18,6 @@ import {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
-    useSidebar,
 } from "@/components/ui/sidebar"
 import { JSX } from "react/jsx-runtime"
 import useBusRouteStore from "@/stores/bus-routes-store"
@@ -29,7 +28,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collap
 import useAddRouteStore from "@/stores/add-route-store"
 import { useBusStore } from "@/stores/bus-store"
 import { AdminMenuKey } from "@/enums/admin-menu-key";
-import { BusRouteEdgeModel } from '@/data-models/bus-route-edge-model';
 import { BusStop } from '@/types/bus-stop';
 
 // Imports for AddRouteItems
@@ -207,24 +205,18 @@ function HomeItems() {
                                                             {groupData.route_ids.size > 0 ? (
                                                                 Array.from(groupData.route_ids).map(routeId => (
                                                                     <SidebarMenuSubButton
-                                                                        className="cursor-pointer"
+                                                                        className={`cursor-pointer${mapGroupVisibilityState[busTypeId] === false ? " opacity-50 pointer-events-none" : ""}`}
                                                                         key={`bus-route-${routeId}`}
-                                                                        // The button itself doesn't need an onClick if checkbox handles all
-                                                                        // However, if clicking the row should also toggle, this is fine.
                                                                         onClick={() => {
                                                                             if (mapGroupVisibilityState[busTypeId] !== false) {
                                                                                 toggleRouteVisibility(routeId);
                                                                             }
                                                                         }}
-                                                                        // Disable button interaction if group is hidden on map
-                                                                        disabled={mapGroupVisibilityState[busTypeId] === false}
                                                                     >
                                                                         <Checkbox
                                                                             checked={busRoutesVisibility[routeId] === true}
                                                                             disabled={mapGroupVisibilityState[busTypeId] === false}
                                                                             onCheckedChange={() => {
-                                                                                // Checkbox click directly calls toggleRouteVisibility
-                                                                                // No need for mapGroupVisibilityState check here as button is disabled
                                                                                 toggleRouteVisibility(routeId);
                                                                             }}
                                                                             aria-label={`Toggle visibility for Route ${routeId}`}

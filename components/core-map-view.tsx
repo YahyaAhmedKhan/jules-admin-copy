@@ -3,11 +3,11 @@ import useBusRouteStore from "@/stores/bus-routes-store";
 import { useBusStore } from "@/stores/bus-store";
 import { MapPinPlusIcon } from "lucide-react";
 import { useEffect } from "react";
-import Map, { GeolocateControl, Layer, MapMouseEvent, Marker, Source } from "react-map-gl/mapbox";
+import Map, { GeolocateControl, Layer, MapMouseEvent, Source } from "react-map-gl/mapbox";
 import { busMarker, busStopMarker, newWaypointMarker } from "./markers";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import useSidebarStore from "@/stores/sidebar-store";
-import { OSMGraphService, VertexData } from "@/app/services/osm-graph-service";
+import { OSMGraphService, } from "@/app/services/osm-graph-service";
 import { Vertex } from "@/types/vertex";
 import { getMapCoordinates, getMapInstance, getMapZoom, setMapInstance } from "@/map/mapbox-map";
 
@@ -22,8 +22,8 @@ export default function CoreMapView() {
     const osmGraphService: OSMGraphService = new OSMGraphService()
 
     useEffect(() => {
-        fetchRoutes(); 
-        fetchBuses(); 
+        fetchRoutes();
+        fetchBuses();
     }, [fetchRoutes, fetchBuses]);
 
     async function onAddRouteClick(e: MapMouseEvent) {
@@ -34,7 +34,7 @@ export default function CoreMapView() {
         const nearestVertex: Vertex = await osmGraphService.getNearestNode(lat, lng)
         console.log('response', nearestVertex)
 
-        addBusStop([nearestVertex.longitude, nearestVertex.latitude]); 
+        addBusStop([nearestVertex.longitude, nearestVertex.latitude]);
         addVertex(nearestVertex);
 
         console.log('steps in bw', intermediateRoutes)
@@ -46,7 +46,7 @@ export default function CoreMapView() {
     return <Map
         onLoad={(e) => {
             const map = e.target;
-            setMapInstance(map); 
+            setMapInstance(map);
             console.log('set global map', getMapInstance())
         }}
 
@@ -86,23 +86,23 @@ export default function CoreMapView() {
 
                 if (!routeSegments || routeSegments.length === 0) {
                     console.warn(`Route ID ${routeId} has no segments. Skipping rendering.`);
-                    return null; 
+                    return null;
                 }
-                const busTypeIdForGroup = routeSegments[0].bus_type_id; 
+                const busTypeIdForGroup = routeSegments[0].bus_type_id;
                 if (busTypeIdForGroup === undefined) {
                     console.warn(`Route ID ${routeId} segments miss bus_type_id. Skipping rendering.`);
-                    return null; 
+                    return null;
                 }
 
                 // New combined visibility check:
-                const isGroupVisibleOnMap = mapGroupVisibilityState[busTypeIdForGroup] !== false; 
+                const isGroupVisibleOnMap = mapGroupVisibilityState[busTypeIdForGroup] !== false;
                 const isRouteIndividuallyVisible = busRoutesVisibility[routeIdNumber] !== false;
 
                 if (!isGroupVisibleOnMap || !isRouteIndividuallyVisible) {
                     return null; // Do not render this route or its segments
                 }
 
-                const routeColor = getRouteColor(busTypeIdForGroup); 
+                const routeColor = getRouteColor(busTypeIdForGroup);
 
                 return routeSegments.map((segment, index) => (
                     <Source
@@ -133,7 +133,7 @@ export default function CoreMapView() {
                             type="line"
                             layout={{ "line-join": "round", "line-cap": "round" }}
                             paint={{
-                                "line-color": routeColor, 
+                                "line-color": routeColor,
                                 "line-width": 5
                             }}
                         />
@@ -150,12 +150,12 @@ export default function CoreMapView() {
                 const routeSegmentsForGroupInfo = busRoutesByID[routeIdForStops];
                 if (!routeSegmentsForGroupInfo || routeSegmentsForGroupInfo.length === 0) {
                     // console.warn(`No route segments found for routeId ${routeIdForStops}, cannot determine group visibility for stops.`);
-                    return null; 
+                    return null;
                 }
                 const busTypeIdForStopsGroup = routeSegmentsForGroupInfo[0].bus_type_id;
                 if (busTypeIdForStopsGroup === undefined) {
                     // console.warn(`Bus_type_id undefined for routeId ${routeIdForStops}, cannot determine group visibility for stops.`);
-                    return null; 
+                    return null;
                 }
 
                 // New combined visibility check for the entire group of stops for this routeId:
@@ -165,10 +165,10 @@ export default function CoreMapView() {
                 if (!isStopGroupVisibleOnMap || !isParentRouteIndividuallyVisible) {
                     return null; // Do not render any stops for this routeId
                 }
-                
-                return locations.map((busStop) => { 
-                    let colorForStopMarker = '#CCCCCC'; 
-                    if (busTypeIdForStopsGroup !== undefined) { 
+
+                return locations.map((busStop) => {
+                    let colorForStopMarker = '#CCCCCC';
+                    if (busTypeIdForStopsGroup !== undefined) {
                         colorForStopMarker = getRouteColor(busTypeIdForStopsGroup);
                     }
                     return busStopMarker(busStop, colorForStopMarker);
@@ -178,9 +178,9 @@ export default function CoreMapView() {
 
         {
             newRouteBusStops?.length > 0 && activeMenu.addRoute &&
-            newRouteBusStops.map((busStop) => { 
+            newRouteBusStops.map((busStop) => {
                 return (
-                    newWaypointMarker(busStop, busStop.index) 
+                    newWaypointMarker(busStop, busStop.index)
                 );
             })
         }
@@ -215,7 +215,7 @@ export default function CoreMapView() {
         {
             buses?.length > 0 &&
             buses.map((bus, index) => {
-                if (!busVisibility || !busVisibility[index]) return null; 
+                if (!busVisibility || !busVisibility[index]) return null;
                 return busMarker(bus);
             })
         }

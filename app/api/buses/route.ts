@@ -11,6 +11,7 @@ export async function GET() {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return NextResponse.json(data, { status: 200 });
     } catch (_error) {
+        console.error('Error fetching bus routes:', _error);
         return NextResponse.json({ error: 'Error fetching bus routes' }, { status: 500 });
     }
 }

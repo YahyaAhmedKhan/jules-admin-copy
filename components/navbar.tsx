@@ -1,7 +1,4 @@
-import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "./ui/sidebar";
-import { listenToCollection } from "@/utils/firestore-utils";
-import { busCollectionPath } from "@/constants/firestore-paths";
 import { User } from "lucide-react";
 
 export const Navbar = () => {

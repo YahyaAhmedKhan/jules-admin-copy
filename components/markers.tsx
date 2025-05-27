@@ -4,7 +4,6 @@ import { Bus } from "@/types/bus";
 import { Bus as BusLucide, BusFront, MapPinPlusIcon } from "lucide-react";
 // import Waypoint from '@/types/waypoint'; // Waypoint import removed
 import { BusStop } from "@/types/bus-stop"; // BusStop import ensured/added
-import useBusRouteStore from "@/stores/bus-routes-store";
 
 
 export const busMarker = (busLocation: Bus) => {
@@ -77,7 +76,7 @@ export const busStopMarker = (busStop: BusStop, color?: string) => {
 }
 
 // Refactored newWaypointMarker function
-export const newWaypointMarker = (busStop: BusStop, orderNumber: number) => { 
+export const newWaypointMarker = (busStop: BusStop, orderNumber: number) => {
     return (
         <Marker
             key={`waypoint-${busStop.id || busStop.location.longitude + '-' + busStop.location.latitude}`} // Use busStop.id
