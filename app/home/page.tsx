@@ -5,7 +5,7 @@ import { AdminSidebar } from '@/components/admin-sidebar';
 import CoreMapView from '@/components/core-map-view';
 import { Button } from "@/components/ui/button";
 import useAddRouteStore from "@/stores/add-route-store";
-import { CheckCircle, Sidebar } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 import { RouteService } from "../services/route-service";
 import useBusRouteStore from "@/stores/bus-routes-store";
 import { AlertDialog, AlertDialogHeader, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogFooter, AlertDialogTrigger, AlertDialogAction } from "@/components/ui/alert-dialog";
@@ -17,8 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from 'lucide-react';
 import { useBusTypeStore } from "@/stores/bus-types-store";
 import useSidebarStore from "@/stores/sidebar-store";
-import { table } from "console";
-import { BusRoutesTable } from "@/components/bus-routes-table";
 import { TablesView } from "@/components/tables-view";
 
 export default function Home() {

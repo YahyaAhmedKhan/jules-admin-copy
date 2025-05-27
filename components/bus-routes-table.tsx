@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
     TableHead,
     TableHeader,
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/pagination";
 import useBusRouteStore from "@/stores/bus-routes-store";
 import { Button } from "./ui/button";
-import { ArrowUpRight, Check, ChevronLeft, ChevronRight, Loader2, RefreshCw, Search, Trash, X } from "lucide-react";
+import { ArrowUpRight, Check, Loader2, RefreshCw, Search, Trash, X } from "lucide-react";
 import { AlertDialog, AlertDialogHeader, AlertDialogTrigger, AlertDialogContent, AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogTitle, AlertDialogDescription } from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -49,7 +48,6 @@ export function BusRoutesTable() {
     } = useBusRouteStore();
 
     const {
-        activeMenu,
         setActiveMenu
     } = useSidebarStore();
 
@@ -403,7 +401,7 @@ function DeleteButton({ routeId }: { routeId: number }) {
                         <Button
                             variant="default"
                             onClick={async () => {
-                                const loadingToast = toast({
+                                toast({
                                     title: "Deleting...",
                                     action: <Loader2 className="w-6 h-6 animate-spin" />,
                                     description: "Please wait while the route is being deleted.",
@@ -414,7 +412,7 @@ function DeleteButton({ routeId }: { routeId: number }) {
                                 // Simulate API call delay
                                 const routeService = new RouteService();
                                 try {
-                                    const response = await routeService.deleteBusRoute(routeId);
+                                    await routeService.deleteBusRoute(routeId);
                                     // if response has status 200, else throws error
                                     console.log(`Route with ID ${routeId} deleted successfully.`);
                                     toast({

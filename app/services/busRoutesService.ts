@@ -6,8 +6,10 @@
 // Define a basic structure for the expected route data for type safety, if known.
 // If the exact structure is complex or varies, 'any' can be used,
 // but a more specific type is preferred for better TypeScript support.
+import { BusRouteEdgeModel } from "@/data-models/bus-route-edge-model";
+
 // For now, using 'any' as per the plan, to be refined in cleanup.
-type BusRouteData = any; 
+type BusRouteData = BusRouteEdgeModel; 
 
 /**
  * @class BusRoutesService

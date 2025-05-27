@@ -7,10 +7,19 @@ if (!accessToken) {
 
 const directionsClient = mbxDirectionsClient({ accessToken: accessToken });
 
-export async function getRoutesMapbox(waypoints: any[]) {
+// Define the structure for a waypoint as expected by the Mapbox Directions API
+interface MapboxWaypoint {
+  coordinates: [number, number]; // [longitude, latitude]
+  // Add other optional properties if needed, e.g.:
+  // approach?: 'curb' | 'unrestricted';
+  // bearing?: [number, number];
+  // waypointName?: string;
+}
+
+export async function getRoutesMapbox(waypoints: MapboxWaypoint[]) {
     // console.log("waypoints to api: ", waypoints);
 
-    // const coordinates = waypoints.map((waypoint: any) => {
+    // const coordinates = waypoints.map((waypoint: MapboxWaypoint) => {
     //     coordinates: waypoint.coordinates
     // }
     // );
@@ -18,7 +27,7 @@ export async function getRoutesMapbox(waypoints: any[]) {
     const request = directionsClient.getDirections({
         profile: 'driving-traffic',
         geometries: 'geojson',
-        waypoints: waypoints,
+        waypoints: waypoints, // SDK expects an array of objects with a 'coordinates' property
     })
     const response = await request.send();
     return response.body;

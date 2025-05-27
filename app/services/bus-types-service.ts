@@ -1,7 +1,7 @@
 import { Vertex } from "@/types/vertex";
 
 export class BusTypesService {
-    async addNewBusRoute(vertices: Vertex[], weights: number[], geometry: any[], description: string, busTypeId: number) {
+    async addNewBusRoute(vertices: Vertex[], weights: number[], geometry: string[], description: string, busTypeId: number) {
 
         const payload = {
             vertices,

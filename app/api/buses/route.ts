@@ -10,7 +10,7 @@ export async function GET() {
         // add 2 secs wait time
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return NextResponse.json(data, { status: 200 });
-    } catch (error) {
+    } catch (_error) {
         return NextResponse.json({ error: 'Error fetching bus routes' }, { status: 500 });
     }
 }

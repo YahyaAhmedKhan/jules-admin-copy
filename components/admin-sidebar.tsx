@@ -1,7 +1,7 @@
 "use client"
 
-// Updated imports: Added Eye, EyeOff. Other icons like BookmarkCheck, Delete, etc., are kept as they were.
-import { BookmarkCheck, Bus, ChevronDown, Delete, Eye, EyeOff, Home, Inbox, MapPlus, Pencil, PlusCircle, Route, Search, Settings, Table, Table2, Table2Icon, Trash, Trash2 } from "lucide-react" 
+// Updated imports: Added Eye, EyeOff.
+import { Bus, ChevronDown, Eye, EyeOff, Home, MapPlus, Pencil, Route, Search, Settings, Table2, Trash, Trash2 } from "lucide-react" 
 import { motion } from "framer-motion";
 import * as React from "react"; 
 
@@ -12,14 +12,12 @@ import {
     SidebarGroupContent,
     SidebarGroupLabel,
     SidebarMenu,
-    SidebarMenuAction,
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuSkeleton,
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem, 
-    useSidebar,
 } from "@/components/ui/sidebar"
 import { JSX } from "react/jsx-runtime"
 import useBusRouteStore from "@/stores/bus-routes-store"
@@ -46,7 +44,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 
@@ -54,7 +51,7 @@ interface MenuItem {
     title: string;
     key: AdminMenuKey
     url: string;
-    icon: any;
+    icon: React.ElementType;
 
 }
 // Menu items.
