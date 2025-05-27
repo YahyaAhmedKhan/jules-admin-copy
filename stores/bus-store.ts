@@ -1,7 +1,6 @@
-import { BusesService } from '@/app/services/busesService';
 import { Bus } from '@/types/bus';
 import { create } from 'zustand';
-// import { BusesService } from '@/services/busesService'; // Added import
+import { BusesService } from '@/services/busesService'; // Added import
 
 // Instantiate the service
 const busesService = new BusesService();
@@ -29,14 +28,14 @@ export const useBusStore = create<BusStore>((set, get) => ({
         set({ loading: true, error: null }); // Reset error on new fetch
         try {
             // Old Firebase logic removed
-
+            
             const fetchedBuses = await busesService.getAllBuses(); // New way using the service
 
             set({
                 buses: fetchedBuses,
                 // Initialize busVisibility based on the number of buses fetched
                 // Assuming default visibility is true for all buses initially
-                busVisibility: fetchedBuses.map(() => true),
+                busVisibility: fetchedBuses.map(() => true), 
                 loading: false,
             });
         } catch (error) {
